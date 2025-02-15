@@ -42,6 +42,7 @@ https://atcoder.jp/contests/ahc043/submissions/62741309
 - 500ターンで操作をやめる
 
 ## 大きく改善
+https://atcoder.jp/contests/ahc043/submissions/me
 
 - 初期解に対してもスコアを適用して貪欲
 - not_connect_w を修正（これがカスすぎ！！） <- 改善のメインの理由
