@@ -51,3 +51,15 @@ https://atcoder.jp/contests/ahc043/submissions/62742163
 https://atcoder.jp/contests/ahc043/submissions/62744662
 
 700ターンで操作をやめるようにした。
+
+## 大きく改善
+https://atcoder.jp/contests/ahc043/submissions/me
+
+- 初期解に対してもスコアを適用して貪欲
+- not_connect_w を修正（これがカスすぎ！！） <- 改善のメインの理由
+
+## ある程度マシな解ができての考察
+- やはり最後は駅の設置が追い付いていない <- 線路の設置が時間がかかりすぎる
+- 最初お金がないときに線路を引くべき
+  - 線路の配置を事前に決める必要がある。
+- スコアの総和があてにならなすぎるので、logを記録する
