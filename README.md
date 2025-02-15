@@ -59,6 +59,7 @@ https://atcoder.jp/contests/ahc043/submissions/62745494
 - not_connect_w を修正（これがカスすぎ！！） <- 改善のメインの理由
 
 Average Score : 2,048,252.83
+
 Average Score (log10) : 5.75598
 
 ## ある程度マシな解ができての考察
