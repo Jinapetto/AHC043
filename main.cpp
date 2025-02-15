@@ -184,7 +184,7 @@ bool contains(vector<int>& v,int x){
 // 貪欲のスコアを計算する
 int calc_score(vector<bool>& vis_house, vector<bool>& vis_office, int sx,int sy,int tx = -1,int ty = -1){
     // parameter
-    int not_connect_w = 0;
+    int not_connect_w = 1;
     // 13近傍
     vector<int> dx = {0,1,0,-1,0,1,-1,-1,1,2,0,-2,0};
     vector<int> dy = {0,0,1,0,-1,1,1,-1,-1,0,2,0,-2};
