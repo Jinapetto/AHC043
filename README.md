@@ -69,7 +69,17 @@ https://atcoder.jp/contests/ahc043/submissions/62747334
 - かかる操作の回数を評価
 
 Average Score          : 2,634,072.44
+
 Average Score (log10)  : 5.89788
+
+改善
+- お金がないときもとりあえず線路を引く
+
+https://atcoder.jp/contests/ahc043/submissions/62750386
+
+Average Score          : 2,769,818.47
+
+Average Score (log10)  : 5.94957
 
 ## ある程度マシな解ができての考察
 - やはり最後は駅の設置が追い付いていない <- 線路の設置が時間がかかりすぎる
