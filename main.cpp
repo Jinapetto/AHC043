@@ -18,6 +18,14 @@ vector<vector<vector<int>>> office_on_grid;
 // その人の通勤距離
 vector<int> commute_dist;
 
+// 13近傍
+vector<int> dx13 = {0,1,0,-1,0,1,-1,-1,1,2,0,-2,0};
+vector<int> dy13 = {0,0,1,0,-1,1,1,-1,-1,0,2,0,-2};
+
+// 4近傍
+vector<int> dx4 = {1,0,-1,0};
+vector<int> dy4 = {0,1,0,-1};
+
 void input(){
     cin >> n >> m >> init_money >> t;
     house.assign(m,pair<int,int>());
@@ -47,15 +55,14 @@ void construct(int sx,int sy,int tx,int ty, vector<vector<int>>& cur_grid, vecto
     dist[sx][sy] = 0;
     queue<pair<int,int>> que;
     que.push({sx,sy});
-    vector<int> dx = {1,0,-1,0};
-    vector<int> dy = {0,1,0,-1};
+    
     while(!que.empty()){
         auto [x,y] = que.front();
         que.pop();
         int fn = false;
         rep(i,4){
-            int nx = x + dx[i];
-            int ny = y + dy[i];
+            int nx = x + dx4[i];
+            int ny = y + dy4[i];
             if(0 <= nx && nx < n && 0 <= ny && ny < n && dist[nx][ny] == 1e9 && cur_grid[nx][ny] <= 0){
                 dist[nx][ny] = dist[x][y] + 1;
                 if(nx == tx && ny == ty) fn = true;
@@ -72,8 +79,8 @@ void construct(int sx,int sy,int tx,int ty, vector<vector<int>>& cur_grid, vecto
     int x = tx,y = ty;
     while(!(x == sx && y == sy)){
         rep(i,4){
-            int nx = x + dx[i];
-            int ny = y + dy[i];
+            int nx = x + dx4[i];
+            int ny = y + dy4[i];
             if(0 <= nx && nx < n && 0 <= ny && ny < n && dist[nx][ny] + 1 == dist[x][y]){
                 dir.push_back(i);
                 pos.push_back({nx,ny});
@@ -221,7 +228,7 @@ int calc_score(vector<bool>& vis_house, vector<bool>& vis_office, int sx,int sy,
                 }else if(!vis_house[j] && contains(add_office_idx,j)){ // まだ家が接続されていないかつオフィスが接続されている
                     ret += commute_dist[j];
                     not_connect_cnt--;
-                }else if(!vis_house[j]){
+                }else if(!vis_house[j] && !contains(add_house_idx,j)){
                     add_house_idx.push_back(j);
                     not_connect_cnt++;
                 }
@@ -233,7 +240,7 @@ int calc_score(vector<bool>& vis_house, vector<bool>& vis_office, int sx,int sy,
                 }else if(!vis_office[j] && contains(add_house_idx,j)){ // まだオフィスが接続されていないかつ家が接続されている
                     ret += commute_dist[j];
                     not_connect_cnt--;
-                }else if(!vis_office[j]){
+                }else if(!vis_office[j] && !contains(add_office_idx,j)){
                     add_office_idx.push_back(j);
                     not_connect_cnt++;
                 }
@@ -253,7 +260,7 @@ int calc_score(vector<bool>& vis_house, vector<bool>& vis_office, int sx,int sy,
                 }else if(!vis_house[j] && contains(add_office_idx,j)){ // まだ家が接続されていないかつオフィスが接続されている
                     ret += commute_dist[j];
                     not_connect_cnt--;
-                }else if(!vis_house[j]){
+                }else if(!vis_house[j] && !contains(add_house_idx,j)){
                     add_house_idx.push_back(j);
                     not_connect_cnt++;
                 }
@@ -265,7 +272,7 @@ int calc_score(vector<bool>& vis_house, vector<bool>& vis_office, int sx,int sy,
                 }else if(!vis_office[j] && contains(add_house_idx,j)){ // まだオフィスが接続されていないかつ家が接続されている
                     ret += commute_dist[j];
                     not_connect_cnt--;
-                }else if(!vis_office[j]){
+                }else if(!vis_office[j] && !contains(add_office_idx,j)){
                     add_office_idx.push_back(j);
                     not_connect_cnt++;
                 }
@@ -290,9 +297,7 @@ vector<tuple<int,int,int>> greedy(){
     // すでにオフィスが線路に接続している
     vector<bool> vis_office(m,false);
 
-    // 駅と接続できる範囲 13近傍
-    vector<int> dx = {0,1,0,-1,0,1,-1,-1,1,2,0,-2,0};
-    vector<int> dy = {0,0,1,0,-1,1,1,-1,-1,0,2,0,-2};
+    
     {// 最初の一手
         // すべての人の家とオフィスをつなぐ候補を列挙する
         vector<pair<pair<int,int>,pair<int,int>> > cand;
@@ -301,10 +306,10 @@ vector<tuple<int,int,int>> greedy(){
             int sx = house[i].first,sy = house[i].second;
             int tx = office[i].first,ty = office[i].second;
             rep(j,13){
-                int nsx = sx + dx[j], nsy = sy + dy[j];
+                int nsx = sx + dx13[j], nsy = sy + dy13[j];
                 if(0 <= nsx && nsx < n && 0 <= nsy && nsy < n){
                     rep(k,13){
-                        int ntx = tx + dx[k], nty = ty + dy[k];
+                        int ntx = tx + dx13[k], nty = ty + dy13[k];
                         if(0 <= ntx && ntx < n && 0 <= nty && nty < n) cand.push_back({{nsx,nsy},{ntx,nty}});
                     }
                 }
@@ -346,58 +351,105 @@ vector<tuple<int,int,int>> greedy(){
         vector<vector<pair<int,pair<int,int>>>> dist = calc_dist(cur_grid);
         int mx_score_op_cnt = 1e9;
         int mx_score_cost = 1e9;
-        int mx_score_pos = -1;
+        int mx_score_x = -1;
+        int mx_score_y = -1;
         double mx_score = -1e9;
         rep(i,m){
             if(vis_house[i] && vis_office[i]) continue;
-            int cur_cost = 0;
-            int cur_op_cnt = 0;
-            int cur_score = 0;
             if(vis_house[i]){ // 家は接続されている
-                if(dist[office[i].first][office[i].second].first == 1e9) continue;
-                cur_cost = (dist[office[i].first][office[i].second].first - 1)*rail_cost + station_cost;
-                cur_op_cnt = dist[office[i].first][office[i].second].first;
-                cur_score = calc_score(vis_house,vis_office,office[i].first,office[i].second);
+                rep(j,13){
+                    int x = office[i].first + dx13[j];
+                    int y = office[i].second + dy13[j];
+                    if(x < 0 || n <= x || y < 0 || n <= y) continue;
+                    int cur_cost = 0;
+                    int cur_op_cnt = 0;
+                    int cur_score = 0;
+                    if(cur_grid[x][y] != -1){ // 今見ている所が線路
+                        cur_cost = station_cost;
+                        cur_score = calc_score(vis_house,vis_office,x,y);
+                        cur_op_cnt = 1;
+                    }else if(dist[x][y].first == 1e9){ // たどり着けない
+                        continue;
+                    }else{                    
+                        cur_score = calc_score(vis_house,vis_office,x,y);
+                        cur_op_cnt = dist[x][y].first;
+                        cur_cost = (dist[x][y].first - 1)*rail_cost + station_cost;
+                    }
+                    if(mx_score < (double)cur_score/cur_cost/sqrt(cur_op_cnt)){
+                        mx_score = (double)cur_score/cur_cost/sqrt(cur_op_cnt);
+                        mx_score_op_cnt = cur_op_cnt;
+                        mx_score_cost = cur_cost;
+                        mx_score_x = x;
+                        mx_score_y = y;
+                    }
+                }
             }else if(vis_office[i]){ //　職場は接続されている
-                if(dist[house[i].first][house[i].second].first == 1e9) continue;
-                cur_cost = (dist[house[i].first][house[i].second].first - 1)*rail_cost + station_cost;
-                cur_op_cnt = dist[house[i].first][house[i].second].first;
-                cur_score = calc_score(vis_house,vis_office,house[i].first,house[i].second);
+                rep(j,13){
+                    int x = house[i].first + dx13[j];
+                    int y = house[i].second + dy13[j];
+                    if(x < 0 || n <= x || y < 0 || n <= y) continue;
+                    int cur_cost = 0;
+                    int cur_op_cnt = 0;
+                    int cur_score = 0;
+                    if(cur_grid[x][y] != -1){ // 今見ている所が駅
+                        cur_cost = station_cost;
+                        cur_score = calc_score(vis_house,vis_office,x,y);
+                        cur_op_cnt = 1;
+                    }else if(dist[x][y].first == 1e9){ // たどり着けない
+                        continue;
+                    }else{                    
+                        cur_score = calc_score(vis_house,vis_office,x,y);
+                        cur_op_cnt = dist[x][y].first;
+                        cur_cost = (dist[x][y].first - 1)*rail_cost + station_cost;
+                    }
+                    if(mx_score < (double)cur_score/cur_cost/sqrt(cur_op_cnt)){
+                        mx_score = (double)cur_score/cur_cost/sqrt(cur_op_cnt);
+                        mx_score_op_cnt = cur_op_cnt;
+                        mx_score_cost = cur_cost;
+                        mx_score_x = x;
+                        mx_score_y = y;
+                    }
+                }
             }else{
-                if(dist[house[i].first][house[i].second].first == 1e9 || dist[office[i].first][office[i].second].first == 1e9) continue;
-                cur_cost = (dist[house[i].first][house[i].second].first - 1 + dist[office[i].first][office[i].second].first - 1)*rail_cost + station_cost*2;
-                cur_op_cnt = dist[house[i].first][house[i].second].first + dist[office[i].first][office[i].second].first;
-                cur_score = calc_score(vis_house,vis_office,house[i].first,house[i].second,office[i].first,office[i].second);
+                // if(dist[house[i].first][house[i].second].first == 1e9 || dist[office[i].first][office[i].second].first == 1e9) continue;
+                // cur_cost = (dist[house[i].first][house[i].second].first - 1 + dist[office[i].first][office[i].second].first - 1)*rail_cost + station_cost*2;
+                // cur_op_cnt = dist[house[i].first][house[i].second].first + dist[office[i].first][office[i].second].first;
+                // cur_score = calc_score(vis_house,vis_office,house[i].first,house[i].second,office[i].first,office[i].second);
             }
             // TODO 操作回数を評価に入れる
-            if(mx_score < (double)cur_score/cur_cost/sqrt(cur_op_cnt)){
-                mx_score = (double)cur_score/cur_cost/sqrt(cur_op_cnt);
-                mx_score_op_cnt = cur_op_cnt;
-                mx_score_cost = cur_cost;
-                mx_score_pos = i;
-            }
+            // if(mx_score < (double)cur_score/cur_cost/sqrt(cur_op_cnt)){
+            //     mx_score = (double)cur_score/cur_cost/sqrt(cur_op_cnt);
+            //     mx_score_op_cnt = cur_op_cnt;
+            //     mx_score_cost = cur_cost;
+            //     mx_score_pos = i;
+            // }
         }
-        if(mx_score_pos == -1) break; // 接続できる所がない
-
+        if(mx_score_x == -1) break; // 接続できる所がない
         // 操作がtに収まらない　または　お金がたまらなさそう
         if(ret.size() + mx_score_op_cnt > finish_turn || (int)ret.size() + max(0,(mx_score_cost - cur_money)/cur_income) > finish_turn) break;
         
         // TODO 両方接続してないときは線路を先につないだ方がお金が節約できる
         // TODO 先に接続したほうから伸ばした方がいい場合がある
-        if(!vis_office[mx_score_pos]){ // オフィスは接続されていない
-            auto [sx,sy] = office[mx_score_pos];
-            auto [tx,ty] = dist[sx][sy].second;
-            construct(sx,sy,tx,ty,cur_grid,ret,cur_money,cur_income);
-
-            make_station(sx,sy,cur_income,cur_money,ret,vis_office,vis_house,cur_grid);
+        // 線路の上に駅を生やすとき以外
+        if(mx_score_op_cnt != 1){
+            auto [tx,ty] = dist[mx_score_x][mx_score_y].second;
+            construct(mx_score_x,mx_score_y,tx,ty,cur_grid,ret,cur_money,cur_income);
         }
-        if(!vis_house[mx_score_pos]){ // 家は接続されていない
-            auto [sx,sy] = house[mx_score_pos];
-            auto [tx,ty] = dist[sx][sy].second;
-            construct(sx,sy,tx,ty,cur_grid,ret,cur_money,cur_income);
+        make_station(mx_score_x,mx_score_y,cur_income,cur_money,ret,vis_office,vis_house,cur_grid);
+        // if(!vis_office[mx_score_pos]){ // オフィスは接続されていない
+        //     auto [sx,sy] = office[mx_score_pos];
+        //     auto [tx,ty] = dist[sx][sy].second;
+        //     construct(sx,sy,tx,ty,cur_grid,ret,cur_money,cur_income);
 
-            make_station(sx,sy,cur_income,cur_money,ret,vis_office,vis_house,cur_grid);
-        }
+        //     make_station(sx,sy,cur_income,cur_money,ret,vis_office,vis_house,cur_grid);
+        // }
+        // if(!vis_house[mx_score_pos]){ // 家は接続されていない
+        //     auto [sx,sy] = house[mx_score_pos];
+        //     auto [tx,ty] = dist[sx][sy].second;
+        //     construct(sx,sy,tx,ty,cur_grid,ret,cur_money,cur_income);
+
+        //     make_station(sx,sy,cur_income,cur_money,ret,vis_office,vis_house,cur_grid);
+        // }
         assert(cur_money >= 0);
 
     }
