@@ -359,7 +359,7 @@ vector<tuple<int,int,int>> greedy(){
         int mx_score_y = -1;
         double mx_score = -1e9;
         rep(x,n)rep(y,n){
-            if(x < 0 || n <= x || y < 0 || n <= y) continue;
+            if(cur_grid[x][y] == 0) continue;
             int cur_cost = 0;
             int cur_op_cnt = 0;
             int cur_score = 0;
@@ -386,7 +386,7 @@ vector<tuple<int,int,int>> greedy(){
         if(mx_score_x == -1) break; // 候補なし
            
         // 操作がtに収まらない　または　お金がたまらなさそう
-        if(ret.size() + mx_score_op_cnt > t || (int)ret.size() + max(0,(mx_score_cost - cur_money)/cur_income) > t) break;
+        if(ret.size() + mx_score_op_cnt > t || (int)ret.size() + max(0,(mx_score_cost - cur_money + cur_income - 1)/cur_income) + 1 > t) break;
         
         // TODO 両方接続してないときは線路を先につないだ方がお金が節約できる
         // TODO 先に接続したほうから伸ばした方がいい場合がある
@@ -412,8 +412,8 @@ vector<tuple<int,int,int>> greedy(){
     ret = mx_ans_score_ret;
     cout << "# cancel = " << ret.size() << endl;
     while(ret.size() < t) pass(cur_money, cur_income, ret);
-    cout << "# money = " << cur_money << endl;
-    cout << "# income = " << cur_income << endl;
+    // cout << "# money = " << cur_money << endl;
+    // cout << "# income = " << cur_income << endl;
     return ret;
 }
 
