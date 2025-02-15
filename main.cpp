@@ -184,7 +184,7 @@ bool contains(vector<int>& v,int x){
 // 貪欲のスコアを計算する
 int calc_score(vector<bool>& vis_house, vector<bool>& vis_office, int sx,int sy,int tx = -1,int ty = -1){
     // parameter
-    int not_connect_w = 10;
+    int not_connect_w = 0;
     // 13近傍
     vector<int> dx = {0,1,0,-1,0,1,-1,-1,1,2,0,-2,0};
     vector<int> dy = {0,0,1,0,-1,1,1,-1,-1,0,2,0,-2};
@@ -208,7 +208,7 @@ int calc_score(vector<bool>& vis_house, vector<bool>& vis_office, int sx,int sy,
                 }else if(!vis_house[j] && contains(add_office_idx,j)){ // まだ家が接続されていないかつオフィスが接続されている
                     ret += commute_dist[j];
                     not_connect_cnt--;
-                }else{
+                }else if(!vis_house[j]){
                     add_house_idx.push_back(j);
                     not_connect_cnt++;
                 }
@@ -220,7 +220,7 @@ int calc_score(vector<bool>& vis_house, vector<bool>& vis_office, int sx,int sy,
                 }else if(!vis_office[j] && contains(add_house_idx,j)){ // まだオフィスが接続されていないかつ家が接続されている
                     ret += commute_dist[j];
                     not_connect_cnt--;
-                }else{
+                }else if(!vis_office[j]){
                     add_office_idx.push_back(j);
                     not_connect_cnt++;
                 }
@@ -240,7 +240,7 @@ int calc_score(vector<bool>& vis_house, vector<bool>& vis_office, int sx,int sy,
                 }else if(!vis_house[j] && contains(add_office_idx,j)){ // まだ家が接続されていないかつオフィスが接続されている
                     ret += commute_dist[j];
                     not_connect_cnt--;
-                }else{
+                }else if(!vis_house[j]){
                     add_house_idx.push_back(j);
                     not_connect_cnt++;
                 }
@@ -252,7 +252,7 @@ int calc_score(vector<bool>& vis_house, vector<bool>& vis_office, int sx,int sy,
                 }else if(!vis_office[j] && contains(add_house_idx,j)){ // まだオフィスが接続されていないかつ家が接続されている
                     ret += commute_dist[j];
                     not_connect_cnt--;
-                }else{
+                }else if(!vis_office[j]){
                     add_office_idx.push_back(j);
                     not_connect_cnt++;
                 }
@@ -305,20 +305,21 @@ vector<tuple<int,int,int>> greedy(){
         // 各スコアを計算する (含まれるpairの数)/(距離)
         // めんどい後回し
 
-        //とりあえず一番距離がギリギリのやつ
-        int mx = 0, mx_pos = -1;
+        //収入が一番高くなるやつ
+        int mx_score = 0, mx_score_pos = -1;
         rep(i,cand.size()){
             auto [sx,sy] = cand[i].first;
             auto [tx,ty] = cand[i].second;
             int dist = abs(tx - sx) + abs(ty - sy);
-            if(dist > (init_money - station_cost*2)/rail_cost) continue;
-            if(dist > mx){
-                mx = dist;
-                mx_pos = i;
+            if((dist - 1)*rail_cost + 2*station_cost > cur_money) continue;
+            int cur_score = calc_score(vis_house,vis_office,sx,sy,tx,ty);
+            if(cur_score > mx_score){
+                mx_score = cur_score;
+                mx_score_pos = i;
             }
         }
-        auto [sx,sy] = cand[mx_pos].first;
-        auto [tx,ty] = cand[mx_pos].second;
+        auto [sx,sy] = cand[mx_score_pos].first;
+        auto [tx,ty] = cand[mx_score_pos].second;
 
         construct(sx,sy,tx,ty,cur_grid,ret,cur_money,cur_income);
 
