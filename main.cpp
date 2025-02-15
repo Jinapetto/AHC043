@@ -283,6 +283,11 @@ int calc_score(vector<bool>& vis_house, vector<bool>& vis_office, int sx,int sy,
     return ret + not_connect_cnt*not_connect_w;
 }
 
+double calc_final_score(int cur_score,int cur_cost,int cur_op_cnt,int cur_money,int cur_income){
+    if(cur_income >= 10000) return (double)cur_score/cur_op_cnt;
+    return (double)cur_score/cur_cost/sqrt(cur_op_cnt);
+}
+
 // 答えを返す 最初の要素が-1なら-1
 vector<tuple<int,int,int>> greedy(){
     int cur_money = init_money;
@@ -374,8 +379,9 @@ vector<tuple<int,int,int>> greedy(){
                 cur_op_cnt = dist[x][y].first;
                 cur_cost = (dist[x][y].first - 1)*rail_cost + station_cost;
             }
-            if(mx_score < (double)cur_score/cur_cost/sqrt(cur_op_cnt)){
-                mx_score = (double)cur_score/cur_cost/sqrt(cur_op_cnt);
+
+            if(mx_score < calc_final_score(cur_score,cur_cost,cur_op_cnt,cur_money,cur_income)){
+                mx_score = calc_final_score(cur_score,cur_cost,cur_op_cnt,cur_money,cur_income);
                 mx_score_op_cnt = cur_op_cnt;
                 mx_score_cost = cur_cost;
                 mx_score_x = x;
