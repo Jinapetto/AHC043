@@ -34,6 +34,12 @@ void input(){
     }
 }
 
+// 操作をパスする
+void pass(int& cur_money, int& cur_income, vector<tuple<int,int,int>>& ans){
+    ans.push_back({-1,-1,-1});
+    cur_money += cur_income;
+}
+
 // {sx, sy} -> {tx, ty} にレールを引く　スタートとゴールには触らない 所持金の更新もする レールを設置して収入が増えることがないことを想定
 void construct(int sx,int sy,int tx,int ty, vector<vector<int>>& cur_grid, vector<tuple<int,int,int>>& ans, int& cur_money, int cur_income){
     assert(!(sx == tx && sy == ty));
@@ -85,6 +91,12 @@ void construct(int sx,int sy,int tx,int ty, vector<vector<int>>& cur_grid, vecto
     for(int i = 0;i < dir.size() - 1;i++){
         if(cur_grid[pos[i].first][pos[i].second] == 0) continue;
         assert(cur_grid[pos[i].first][pos[i].second] == -1);
+
+        // お金がないときは待つ
+        while(cur_money < rail_cost){
+            pass(cur_money,cur_income,ans);
+        }
+
         // 所持金を減らす 
         cur_money -= rail_cost;
         assert(cur_money >= 0);
@@ -100,7 +112,7 @@ void construct(int sx,int sy,int tx,int ty, vector<vector<int>>& cur_grid, vecto
         if((dir[i] == 2 && dir[i + 1] == 1) || (dir[i] == 3 && dir[i + 1] == 0)) ans.push_back({6,pos[i].first,pos[i].second});
         cur_grid[pos[i].first][pos[i].second] = get<0>(ans.back());
     }
-    // assert((int)ans.size() - pre_ans_sz == (int)dir.size() - 1);
+    assert(ans.size() <= t);
 }
 
 //駅からの距離 {距離、最寄り駅の座標}
@@ -152,6 +164,11 @@ int calc_income(vector<bool>& vis_office, vector<bool>& vis_house){
 
 // 駅を立てる、収入の更新、所持金の更新もする
 void make_station(int x,int y,int& cur_income,int& cur_money,vector<tuple<int,int,int>>& ans,vector<bool>& vis_office, vector<bool>& vis_house, vector<vector<int>>& cur_grid){
+    // お金がないときは待つ
+    while(cur_money < station_cost){
+        pass(cur_money,cur_income,ans);
+    }
+
     // 所持金を減らす
     cur_money -= station_cost;
     assert(cur_money >= 0);
@@ -169,11 +186,7 @@ void make_station(int x,int y,int& cur_income,int& cur_money,vector<tuple<int,in
     cur_money += cur_income;
 }
 
-// 操作をパスする
-void pass(int& cur_money, int& cur_income, vector<tuple<int,int,int>>& ans){
-    ans.push_back({-1,-1,-1});
-    cur_money += cur_income;
-}
+
 
 // vにxが含まれるか
 bool contains(vector<int>& v,int x){
@@ -366,14 +379,8 @@ vector<tuple<int,int,int>> greedy(){
         }
         if(mx_score_pos == -1) break; // 接続できる所がない
 
-        // お金がたまるまで我慢 めんどくさいので貯金で無理だったら無理なことにする TODO なおす
-        while(cur_money < mx_score_cost){
-            pass(cur_money, cur_income, ret);
-            if(ret.size() == finish_turn) break;
-        }
-
-        // 操作がtに収まらない
-        if(ret.size() + mx_score_op_cnt > finish_turn) break;
+        // 操作がtに収まらない　または　お金がたまらなさそう
+        if(ret.size() + mx_score_op_cnt > finish_turn || (int)ret.size() + max(0,(mx_score_cost - cur_money)/cur_income) > finish_turn) break;
         
         // TODO 両方接続してないときは線路を先につないだ方がお金が節約できる
         // TODO 先に接続したほうから伸ばした方がいい場合がある
