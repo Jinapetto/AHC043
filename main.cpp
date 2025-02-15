@@ -357,8 +357,8 @@ vector<tuple<int,int,int>> greedy(){
                 cur_score = calc_score(vis_house,vis_office,house[i].first,house[i].second,office[i].first,office[i].second);
             }
             // TODO 操作回数を評価に入れる
-            if(mx_score < (double)cur_score/cur_cost){
-                mx_score = (double)cur_score/cur_cost;
+            if(mx_score < (double)cur_score/cur_cost/sqrt(cur_op_cnt)){
+                mx_score = (double)cur_score/cur_cost/sqrt(cur_op_cnt);
                 mx_score_op_cnt = cur_op_cnt;
                 mx_score_cost = cur_cost;
                 mx_score_pos = i;
