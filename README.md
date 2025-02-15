@@ -97,6 +97,8 @@ Average Score (log10)  : 6.07335
 - 途中で操作をやめた時の最終スコアを評価
 - 手の探索を全ますで行う
 
+https://atcoder.jp/contests/ahc043/submissions/62823586
+
 Average Score          : 3,586,911.53
 
 Average Score (log10)  : 6.09890
