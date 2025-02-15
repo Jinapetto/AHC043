@@ -269,7 +269,7 @@ vector<tuple<int,int,int>> greedy(){
     int cur_income = 0;
     vector<tuple<int,int,int>> ret;
     // 操作を終えるターン
-    int finish_turn = 500;
+    int finish_turn = 700;
     //現在の盤面
     vector<vector<int>> cur_grid(n,vector<int>(n,-1));
     // すでに家が線路に接続している
