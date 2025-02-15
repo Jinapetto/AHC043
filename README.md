@@ -40,3 +40,8 @@ https://atcoder.jp/contests/ahc043/submissions/62741309
 - 一手目は一番遠くできるペアを選ぶ
 - 今ある駅からつなげることのできるcostが一番小さいペアを接続する
 - 500ターンで操作をやめる
+
+貪欲を改善
+https://atcoder.jp/contests/ahc043/submissions/62742163
+> 今ある駅からつなげることのできるcostが一番小さいペアを接続する
+を増える収入/コストにした
