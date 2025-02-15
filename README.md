@@ -53,7 +53,7 @@ https://atcoder.jp/contests/ahc043/submissions/62744662
 700ターンで操作をやめるようにした。
 
 ## 大きく改善
-https://atcoder.jp/contests/ahc043/submissions/me
+https://atcoder.jp/contests/ahc043/submissions/62745494
 
 - 初期解に対してもスコアを適用して貪欲
 - not_connect_w を修正（これがカスすぎ！！） <- 改善のメインの理由
