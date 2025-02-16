@@ -137,3 +137,11 @@ Average Score (log10)  : 6.09754
 スコアが変わってないのはいいこと
 
 このことから、駅の配置と順番が一番大事であることがいえる？
+
+駅の配置と順番を今の貪欲をもとに作った。今までよりも自由度が少し高いためスコアがよい
+
+https://atcoder.jp/contests/ahc043/submissions/62838587
+
+Average Score          : 3,542,441.64
+
+Average Score (log10)  : 6.12055
