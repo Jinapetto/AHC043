@@ -423,9 +423,183 @@ vector<tuple<int,int,int>> greedy(){
     return ret;
 }
 
+// ２点間を線路で結ぶ、最短距離を維持しながら寄り道できる場合は再帰する
+// 返り値は{(sx,sy)につながる線路の位置, (tx,ty)につながる線路の位置}
+pair<int,int> construct_yorimichi(int sx,int sy,int tx,int ty, vector<vector<int>>& cur_grid, vector<tuple<int,int,int>>& ans, int& cur_money, int cur_income, vector<pair<int,int>>& station_pos){
+    vector<vector<int>> dist(n,vector<int>(n,1e9));
+    dist[sx][sy] = 0;
+    queue<pair<int,int>> que;
+    que.push({sx,sy});
+    
+    while(!que.empty()){
+        auto [x,y] = que.front();
+        que.pop();
+        rep(i,4){
+            int nx = x + dx4[i];
+            int ny = y + dy4[i];
+            if(0 <= nx && nx < n && 0 <= ny && ny < n && dist[nx][ny] == 1e9 && cur_grid[nx][ny] <= 0){
+                dist[nx][ny] = dist[x][y] + 1;
+                que.push({nx,ny});
+            }
+        }
+    }
+    assert(dist[tx][ty] != 1e9);
+
+    // 最短経路で寄り道できる
+    vector<vector<bool>> can_pass(n,vector<bool>(n,false));
+    assert(que.empty());
+    can_pass[tx][ty] = true;
+    que.push({tx,ty});
+
+    while(!que.empty()){
+        auto [x,y] = que.front();
+        que.pop();
+        rep(i,4){
+            int nx = x + dx4[i];
+            int ny = y + dy4[i];
+            if(0 <= nx && nx < n && 0 <= ny && ny < n && !can_pass[nx][ny] && dist[nx][ny] + 1 == dist[x][y]){
+                que.push({nx,ny});
+                can_pass[nx][ny] = true;
+            }
+        }
+    }
+
+    // staton_pos を昇順にみて一番最初に寄り道できる所で再帰
+    for(auto [x,y] : station_pos){
+        if(x == sx && y == sy) continue;
+        if(x == tx && y == ty) continue;
+        if(can_pass[x][y]){
+            pair<int,int> ret1 = construct_yorimichi(sx,sy,x,y,cur_grid,ans,cur_money,cur_income,station_pos);
+            pair<int,int> ret2 = construct_yorimichi(x,y,tx,ty,cur_grid,ans,cur_money,cur_income,station_pos);
+
+            // {x,y} に線路が設置されないので補完する
+            assert(ret1.second != ret2.first);
+            int rail_kind = -1;
+            // d : v > ^ < 
+            if((ret1.second == 1 && ret2.first == 3) || (ret1.second == 3 && ret2.first == 1)) rail_kind = 1;
+            if((ret1.second == 0 && ret2.first == 2) || (ret1.second == 2 && ret2.first == 0)) rail_kind = 2;
+            if((ret1.second == 0 && ret2.first == 3) || (ret1.second == 3 && ret2.first == 0)) rail_kind = 3;
+            if((ret1.second == 2 && ret2.first == 3) || (ret1.second == 3 && ret2.first == 2)) rail_kind = 4;
+            if((ret1.second == 1 && ret2.first == 2) || (ret1.second == 2 && ret2.first == 1)) rail_kind = 5;
+            if((ret1.second == 0 && ret2.first == 1) || (ret1.second == 1 && ret2.first == 0)) rail_kind = 6;
+            assert(rail_kind != -1);
+
+            // お金がないときは待つ
+            while(cur_money < rail_cost){
+                pass(cur_money,cur_income,ans);
+            }
+
+            // 所持金を減らす 
+            cur_money -= rail_cost;
+            assert(cur_money >= 0);
+
+            // 所持金を増やす
+            cur_money += cur_income;
+
+            ans.push_back({rail_kind,x,y});
+            cur_grid[x][y] = rail_kind;
+
+            return {ret1.first,ret2.second};
+        }
+    }
+
+    // 寄り道できるところがない
+    // 矢印の列挙
+    vector<int> dir;
+    vector<pair<int,int>> pos;
+    int x = tx,y = ty;
+    while(!(x == sx && y == sy)){
+        rep(i,4){
+            int nx = x + dx4[i];
+            int ny = y + dy4[i];
+            if(0 <= nx && nx < n && 0 <= ny && ny < n && dist[nx][ny] + 1 == dist[x][y]){
+                dir.push_back(i);
+                pos.push_back({nx,ny});
+                x = nx;
+                y = ny;
+                break;
+            }
+            assert(i != 3);
+        }
+    }
+
+    // 矢印 -> 答え
+    // d : v > ^ < 
+    int pre_ans_sz = ans.size();
+    for(int i = 0;i < dir.size() - 1;i++){
+        if(cur_grid[pos[i].first][pos[i].second] == 0) continue;
+        assert(cur_grid[pos[i].first][pos[i].second] == -1);
+
+        // お金がないときは待つ
+        while(cur_money < rail_cost){
+            pass(cur_money,cur_income,ans);
+        }
+
+        // 所持金を減らす 
+        cur_money -= rail_cost;
+        assert(cur_money >= 0);
+
+        // 所持金を増やす
+        cur_money += cur_income;
+
+        if((dir[i] == 1 && dir[i + 1] == 1) || (dir[i] == 3 && dir[i + 1] == 3)) ans.push_back({1,pos[i].first,pos[i].second});
+        if((dir[i] == 0 && dir[i + 1] == 0) || (dir[i] == 2 && dir[i + 1] == 2)) ans.push_back({2,pos[i].first,pos[i].second});
+        if((dir[i] == 1 && dir[i + 1] == 0) || (dir[i] == 2 && dir[i + 1] == 3)) ans.push_back({3,pos[i].first,pos[i].second});
+        if((dir[i] == 1 && dir[i + 1] == 2) || (dir[i] == 0 && dir[i + 1] == 3)) ans.push_back({4,pos[i].first,pos[i].second});
+        if((dir[i] == 0 && dir[i + 1] == 1) || (dir[i] == 3 && dir[i + 1] == 2)) ans.push_back({5,pos[i].first,pos[i].second});
+        if((dir[i] == 2 && dir[i + 1] == 1) || (dir[i] == 3 && dir[i + 1] == 0)) ans.push_back({6,pos[i].first,pos[i].second});
+        cur_grid[pos[i].first][pos[i].second] = get<0>(ans.back());
+    }
+    assert(ans.size() <= t);
+    return {(dir.back() + 2)%4, dir[0]};
+}
+
+// 駅を作る座標とその順番から答えを作成
+vector<tuple<int,int,int>> greedy_rail(vector<pair<int,int>> station_pos){
+    int cur_money = init_money;
+    int cur_income = 0;
+    // 答え
+    vector<tuple<int,int,int>> ans;
+    //現在の盤面
+    vector<vector<int>> cur_grid(n,vector<int>(n,-1));
+    // すでに家が線路に接続している
+    vector<bool> vis_house(m,false);
+    // すでにオフィスが線路に接続している
+    vector<bool> vis_office(m,false);
+
+    // 一番最初は駅を作る
+    make_station(station_pos[0].first,station_pos[0].second,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
+
+    for(int i = 1;i < station_pos.size();i++){
+        auto [x, y] = station_pos[i];
+        // 駅の建設予定地に線路がある場合
+        if(cur_grid[x][y] >= 1){
+            make_station(x,y,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
+            continue;
+        }
+
+        vector<vector<pair<int,pair<int,int>>>> dist = calc_dist(cur_grid);
+        // 最寄りの駅が存在する
+        assert(dist[x][y].second.first != -1);
+
+        // 線路を引く
+        construct_yorimichi(dist[x][y].second.first,dist[x][y].second.second,x,y,cur_grid,ans,cur_money,cur_income,station_pos);
+
+        // 駅を作る
+        make_station(x,y,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
+    }
+    return ans;
+}
+
 int main(){
     input();
     vector<tuple<int,int,int>> ans = greedy();
+    vector<pair<int,int>> station_pos;
+    rep(i,t){
+        if(get<0>(ans[i]) == 0) station_pos.push_back({get<1>(ans[i]),get<2>(ans[i])});
+    }
+    ans = greedy_rail(station_pos);
+    while(ans.size() != t) ans.push_back({-1,-1,-1});
     for(auto [out1, out2, out3] : ans){
         if(out1 != -1) cout << out1 << ' ' << out2 << ' ' << out3 << '\n';
         else cout << -1 << '\n';
