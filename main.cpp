@@ -209,19 +209,12 @@ using Hash = uint32_t; // TODO
 // メモリ使用量をできるだけ小さくしてください
 struct Action {
     // 全部差分
-    int cur_income;
-    int cur_turn;
-    int cur_money;
-    int station_x;
-    int station_y;
-    int fin = 0;
+    // [0,6) -> x, [6,12) -> y, [12,24) -> turn, [24,50) -> income, [50,51) -> fin
+    ll x_y_turn_income_fin;
+    int money;
     Action() {
-        cur_income = 0;
-        cur_turn = 0;
-        cur_money = 0;
-        station_x = -1;
-        station_y = -1;
-        fin = 0;
+        x_y_turn_income_fin = 0;
+        money = 0;
     }
 };
 
@@ -444,8 +437,7 @@ class State {
         void expand(const Evaluator& evaluator, Hash hash, int parent, Selector& selector) {
             {
                 Action n_act;
-                if(fin == 0) n_act.fin = 1;
-                else n_act.fin = 0;
+                if(fin == 0) n_act.x_y_turn_income_fin |= (1LL<<50);
                 selector.push(n_act,evaluator,hash,parent,false);
             }
             if(fin) return;
@@ -456,17 +448,16 @@ class State {
 
                 int cost = (dist[x][y] - 1)*rail_cost + station_cost;
                 
-                Action n_act;
+                int inc_turn = max(dist[x][y], (cost - cur_money + cur_income - 1)/cur_income + 1); // max(操作回数、お金がたまるまで)
+                int inc_money =  - cost + (inc_turn - 1)*cur_income + (cur_income + inc_income);
+                assert(cur_money + inc_money >= 0);
 
-                n_act.cur_income = inc_income;
-                n_act.cur_turn = max(dist[x][y], (cost - cur_money + cur_income - 1)/cur_income + 1); // max(操作回数、お金がたまるまで)
-                n_act.cur_money =  - cost + (n_act.cur_turn - 1)*cur_income + (cur_income + n_act.cur_income);
-                n_act.station_x = x;
-                n_act.station_y = y;
-                assert(cur_money + n_act.cur_money >= 0);
+                Action n_act;
+                n_act.money = inc_money;
+                n_act.x_y_turn_income_fin = ll(x) | (ll(y)<<6) | (ll(inc_turn)<<12) | (ll(inc_income)<<24);
                 
                 Evaluator n_eva;
-                n_eva.score = (cur_money + n_act.cur_money) + max(0, (cur_income + n_act.cur_income)*(t - (cur_turn + n_act.cur_turn))) + n_no_connect_cnt*1000;
+                n_eva.score = (cur_money + inc_money) + max(0, (cur_income + inc_income)*(t - (cur_turn + inc_turn))) + n_no_connect_cnt*1000;
 
                 Hash n_hash = random()%(int)1e9;
                 
@@ -477,20 +468,22 @@ class State {
 
         // actionを実行して次の状態に遷移する
         void move_forward(Action action) {
-            fin ^= action.fin;
+            fin ^= action.x_y_turn_income_fin>>50;
             if(fin) return;
-            cur_money += action.cur_money;
-            cur_income += action.cur_income;
-            cur_turn += action.cur_turn;
-            station_pos.push_back({action.station_x, action.station_y});
-            for(int idx : house_on_grid13[action.station_x][action.station_y]){
+            cur_money += action.money;
+            cur_income += (action.x_y_turn_income_fin>>24) & ((1<<26) - 1);
+            cur_turn += (action.x_y_turn_income_fin>>12) & ((1<<12) - 1);
+            int x = (action.x_y_turn_income_fin) & ((1<<6) - 1);
+            int y = (action.x_y_turn_income_fin>>6) & ((1<<6) - 1);
+            station_pos.push_back({x, y});
+            for(int idx : house_on_grid13[x][y]){
                 vis_house[idx]++;
                 if(vis_house[idx] == 1){
                    if(vis_office[idx] == 0) no_connect_cnt++;
                    else no_connect_cnt--;
                 }
             }
-            for(int idx : office_on_grid13[action.station_x][action.station_y]){
+            for(int idx : office_on_grid13[x][y]){
                 vis_office[idx]++;
                 if(vis_office[idx] == 1){
                     if(vis_house[idx] == 0) no_connect_cnt++;
@@ -502,20 +495,22 @@ class State {
         // actionを実行する前の状態に遷移する
         // 今の状態は、親からactionを実行して遷移した状態である
         void move_backward(Action action) {
-            fin ^= action.fin;
-            if(fin ^ action.fin) return;
-            cur_money -= action.cur_money;
-            cur_income -= action.cur_income;
-            cur_turn -= action.cur_turn;
+            fin ^= action.x_y_turn_income_fin>>50;
+            if(fin ^ action.x_y_turn_income_fin>>50) return;
+            cur_money -= action.money;
+            cur_income -= (action.x_y_turn_income_fin>>24) & ((1<<26) - 1);
+            cur_turn -= (action.x_y_turn_income_fin>>12) & ((1<<12) - 1);
+            int x = (action.x_y_turn_income_fin) & ((1<<6) - 1);
+            int y = (action.x_y_turn_income_fin>>6) & ((1<<6) - 1);
             station_pos.pop_back();
-            for(int idx : house_on_grid13[action.station_x][action.station_y]){
+            for(int idx : house_on_grid13[x][y]){
                 vis_house[idx]--;
                 if(vis_house[idx] == 0){
                    if(vis_office[idx] == 0) no_connect_cnt--;
                    else no_connect_cnt++;
                 }
             }
-            for(int idx : office_on_grid13[action.station_x][action.station_y]){
+            for(int idx : office_on_grid13[x][y]){
                 vis_office[idx]--;
                 if(vis_office[idx] == 0){
                     if(vis_house[idx] == 0) no_connect_cnt--;
@@ -1417,7 +1412,7 @@ int main(){
     // ビームサーチの設定
     beam_search::Config config;
     config.beam_width = 50;
-    config.max_turn = min(m,100);
+    config.max_turn = min(m,200);
     config.hash_map_capacity = 50*50*config.beam_width*config.max_turn;
     config.nodes_capacity = 50*50*config.beam_width;
 
@@ -1428,8 +1423,8 @@ int main(){
 
     vector<pair<int,int>> station_pos = {init_pos.first,init_pos.second};
     rep(i,act.size()){
-        if(act[i].fin) break;
-        station_pos.push_back({act[i].station_x,act[i].station_y});
+        if(act[i].x_y_turn_income_fin>>50) break;
+        station_pos.push_back({(act[i].x_y_turn_income_fin) & ((1<<6) - 1), (act[i].x_y_turn_income_fin>>6) & ((1<<6) - 1) });
     }
     
     vector<tuple<int,int,int>> ans = greedy_rail(station_pos);
