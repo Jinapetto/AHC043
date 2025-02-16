@@ -397,25 +397,21 @@ vector<vector<int>> calc_dist(vector<pair<int,int>>& station_pos){
     return dist;
 }
 
-pair<int,int> calc_inc_income(int x, int y, vector<int>& vis_house, vector<int>& vis_office, int no_connect_cnt){
+pair<int,int> calc_inc_income(int x, int y, vector<int>& vis_house, vector<int>& vis_office, int connect_cnt){
     int ret = 0;
     for(int idx : house_on_grid13[x][y]){
         if(vis_house[idx] == 0){
-            if(vis_office[idx] != 0){
-                ret += commute_dist[idx];
-                no_connect_cnt--;
-            }else no_connect_cnt++;
+            connect_cnt++;
+            if(vis_office[idx] != 0) ret += commute_dist[idx];
         }
     }
     for(int idx : office_on_grid13[x][y]){
         if(vis_office[idx] == 0){
-            if(vis_house[idx] != 0){
-                ret += commute_dist[idx];
-                no_connect_cnt--;
-            }else no_connect_cnt++;
+            connect_cnt++;
+            if(vis_house[idx] != 0) ret += commute_dist[idx];
         }
     }
-    return {ret,no_connect_cnt};
+    return {ret,connect_cnt};
 }
 
 // 深さ優先探索に沿って更新する情報をまとめたクラス
@@ -444,7 +440,7 @@ class State {
             vector<vector<int>> dist = calc_dist(station_pos);
             rep(x,n)rep(y,n){
                 if(dist[x][y] == 0) continue; //駅
-                auto [inc_income,n_no_connect_cnt] = calc_inc_income(x,y,vis_house,vis_office,no_connect_cnt);
+                auto [inc_income,n_connect_cnt] = calc_inc_income(x,y,vis_house,vis_office,connect_cnt);
 
                 int cost = (dist[x][y] - 1)*rail_cost + station_cost;
                 
@@ -457,7 +453,7 @@ class State {
                 n_act.x_y_turn_income_fin = ll(x) | (ll(y)<<6) | (ll(inc_turn)<<12) | (ll(inc_income)<<24);
                 
                 Evaluator n_eva;
-                n_eva.score = (cur_money + inc_money) + max(0, (cur_income + inc_income)*(t - (cur_turn + inc_turn))) + n_no_connect_cnt*1000;
+                n_eva.score = (cur_money + inc_money) + max(0, (cur_income + inc_income)*(t - (cur_turn + inc_turn))) + n_connect_cnt*2000;
 
                 Hash n_hash = random()%(int)1e9;
                 
@@ -478,17 +474,11 @@ class State {
             station_pos.push_back({x, y});
             for(int idx : house_on_grid13[x][y]){
                 vis_house[idx]++;
-                if(vis_house[idx] == 1){
-                   if(vis_office[idx] == 0) no_connect_cnt++;
-                   else no_connect_cnt--;
-                }
+                if(vis_house[idx] == 1) connect_cnt++;
             }
             for(int idx : office_on_grid13[x][y]){
                 vis_office[idx]++;
-                if(vis_office[idx] == 1){
-                    if(vis_house[idx] == 0) no_connect_cnt++;
-                    else no_connect_cnt--;
-                }
+                if(vis_office[idx] == 1) connect_cnt++;
             }
         }
 
@@ -505,17 +495,11 @@ class State {
             station_pos.pop_back();
             for(int idx : house_on_grid13[x][y]){
                 vis_house[idx]--;
-                if(vis_house[idx] == 0){
-                   if(vis_office[idx] == 0) no_connect_cnt--;
-                   else no_connect_cnt++;
-                }
+                if(vis_house[idx] == 0) connect_cnt--;
             }
             for(int idx : office_on_grid13[x][y]){
                 vis_office[idx]--;
-                if(vis_office[idx] == 0){
-                    if(vis_house[idx] == 0) no_connect_cnt--;
-                    else no_connect_cnt++;
-                }
+                if(vis_office[idx] == 0) connect_cnt--;
             }
         }
 
@@ -526,7 +510,7 @@ class State {
         vector<int> vis_house;
         vector<pair<int,int>> station_pos;
         int fin = 0;
-        int no_connect_cnt = 0;
+        int connect_cnt = 0;
     private:
 
 };
@@ -1399,8 +1383,9 @@ pair<beam_search::State,pair<pair<int,int>,pair<int,int>> > first_step(){
     rep(i,m) if(ret.vis_house[i] && ret.vis_office[i]) ret.cur_income += commute_dist[i];
 
     // 接続されていない家やオフィス
-    ret.no_connect_cnt = 0;
-    rep(i,m) if(ret.vis_house[i] != ret.vis_office[i]) ret.no_connect_cnt++;
+    ret.connect_cnt = 0;
+    rep(i,m) if(ret.vis_office[i]) ret.connect_cnt++;
+    rep(i,m) if(ret.vis_house[i]) ret.connect_cnt++;
 
     return {ret,{{sx,sy},{tx,ty}}};
 }
