@@ -1,6 +1,7 @@
 #include <bits/stdc++.h>
 using namespace std;
 using ll = long long;
+using ull = unsigned long long;
 
 #define rep(i, n) for (int i = 0; i < (int)(n); i++)
 #define ALL(obj) (obj).begin(),(obj).end()
@@ -35,6 +36,12 @@ vector<int> dy4 = {0,1,0,-1};
 vector<vector<int>> z_hash_grid;
 vector<int> z_hash_house;
 vector<int> z_hash_office;
+
+//parameter inputで計算
+int connect_cnt_w;
+
+// ビーム幅
+int beam_width = 0;
 
 unsigned long xor128(void){
 	static unsigned long x = 123456789,y = 362436069,z = 541288629,w = 88675123;
@@ -222,8 +229,8 @@ using Hash = uint32_t; // TODO
 // メモリ使用量をできるだけ小さくしてください
 struct Action {
     // 全部差分
-    // [0,6) -> x, [6,12) -> y, [12,24) -> turn, [24,50) -> income, [50,51) -> fin
-    ll x_y_turn_income_fin;
+    // [0,6) -> x, [6,12) -> y, [12,24) -> turn, [24,50) -> income, [50,56) -> tx, [56,62) -> ty, [62,63) -> fin, [63,64) -> is first
+    unsigned long long x_y_turn_income_fin;
     int money;
     Action() {
         x_y_turn_income_fin = 0;
@@ -385,6 +392,7 @@ class Selector {
         }
 };
 
+
 //駅からの距離 {距離、最寄り駅の座標}
 vector<vector<int>> calc_dist(vector<pair<int,int>>& station_pos){
     vector<vector<int>> dist(n,vector<int>(n,(int)1e9));
@@ -430,6 +438,77 @@ pair<int,int> calc_inc_income(int x, int y, vector<int>& vis_house, vector<int>&
     return {ret,connect_cnt};
 }
 
+// {inc_income, cnnect_cnt, hash}
+tuple<int,int,Hash> calc_first_step(int sx,int sy,int tx,int ty){
+    vector<bool> vis_house(m,false);
+    vector<bool> vis_office(m,false);
+
+    for(int idx : house_on_grid13[sx][sy]) vis_house[idx] = true;
+    for(int idx : house_on_grid13[tx][ty]) vis_house[idx] = true;
+
+    for(int idx : office_on_grid13[sx][sy]) vis_office[idx] = true;
+    for(int idx : office_on_grid13[tx][ty]) vis_office[idx] = true;
+
+    int inc_income = 0;
+    int connect_cnt = 0;
+    Hash hash = 0;
+
+    rep(i,m){
+        if(vis_house[i] && vis_office[i]) inc_income += commute_dist[i];
+        if(vis_house[i]){
+            connect_cnt++;
+            hash ^= z_hash_house[i];
+        }
+        if(vis_office[i]){
+            connect_cnt++;
+            hash ^= z_hash_office[i];
+        }
+    }
+
+    return {inc_income,connect_cnt,hash};
+}
+
+// 最初の1手 {Action, Hash, connect_cnt}
+vector<tuple<Action,Hash,int>> first_step(){
+    // すべての人の家とオフィスをつなぐ候補を列挙する
+    vector<pair<pair<int,int>,pair<int,int>> > cand;
+    rep(i,m){
+        int sx = house[i].first,sy = house[i].second;
+        int tx = office[i].first,ty = office[i].second;
+        rep(j,13){
+            int nsx = sx + dx13[j], nsy = sy + dy13[j];
+            if(0 <= nsx && nsx < n && 0 <= nsy && nsy < n){
+                rep(k,13){
+                    int ntx = tx + dx13[k], nty = ty + dy13[k];
+                    if(0 <= ntx && ntx < n && 0 <= nty && nty < n) cand.push_back({{nsx,nsy},{ntx,nty}});
+                }
+            }
+        }
+    }
+    // 重複を取り除く
+    rep(i,cand.size()) if(cand[i].first > cand[i].second) swap(cand[i].first, cand[i].second);
+    sort(ALL(cand));
+    cand.erase(unique(ALL(cand)),cand.end());
+
+    vector<tuple<Action,Hash,int>> ret;
+    rep(i,cand.size()){
+        int dist = abs(cand[i].first.first - cand[i].second.first) + abs(cand[i].first.second - cand[i].second.second);
+        int cost = (dist - 1)*rail_cost + 2*station_cost;
+        // お金が足りないとき
+        if(cost > init_money) continue;
+
+        int inc_turn = dist + 1;
+        auto [inc_income,connect_cnt,hash] = calc_first_step(cand[i].first.first, cand[i].first.second, cand[i].second.first, cand[i].second.second);
+        int inc_money = -cost + inc_income;
+        Action act;
+        act.x_y_turn_income_fin = (cand[i].first.first) | (ull(cand[i].first.second)<<6) | (ull(inc_turn)<<12) | (ull(inc_income)<<24) | (ull(cand[i].second.first)<<50) | (ull(cand[i].second.second)<<56) | (1ULL<<63);
+        act.money = inc_money;
+        ret.push_back({act,hash,connect_cnt});
+    }
+
+    return ret;
+}
+
 // 深さ優先探索に沿って更新する情報をまとめたクラス
 class State {
     public:
@@ -447,9 +526,18 @@ class State {
         //   hash      : 今のハッシュ値
         //   parent    : 今のノードID（次のノードにとって親となる）
         void expand(const Evaluator& evaluator, Hash hash, int parent, Selector& selector) {
-            {
+            if(station_pos.size() == 0){// 1手目
+                vector<tuple<Action,Hash,int>> cand = first_step();
+                for(auto [act,hash,connect_cnt] : cand){
+                    Evaluator n_eva;
+                    n_eva.score = (cur_money + act.money) + (cur_income + ((act.x_y_turn_income_fin>>24) & ((1ULL<<26) - 1)))*(t - (cur_turn + ((act.x_y_turn_income_fin>>12) & ((1ULL<<12) - 1)))) + connect_cnt*connect_cnt_w;
+                    selector.push(act,n_eva,hash,parent,false);
+                }
+                return;
+            }
+            {// 今を維持
                 Action n_act;
-                if(fin == 0) n_act.x_y_turn_income_fin |= (1LL<<50);
+                if(fin == 0) n_act.x_y_turn_income_fin |= (1ULL<<62);
                 selector.push(n_act,evaluator,hash,parent,false);
             }
             if(fin) return;
@@ -469,10 +557,10 @@ class State {
 
                 Action n_act;
                 n_act.money = inc_money;
-                n_act.x_y_turn_income_fin = ll(x) | (ll(y)<<6) | (ll(inc_turn)<<12) | (ll(inc_income)<<24);
+                n_act.x_y_turn_income_fin = ull(x) | (ull(y)<<6) | (ull(inc_turn)<<12) | (ull(inc_income)<<24);
                 
                 Evaluator n_eva;
-                n_eva.score = (cur_money + inc_money) + (cur_income + inc_income)*(t - (cur_turn + inc_turn)) + n_connect_cnt*2000;
+                n_eva.score = (cur_money + inc_money) + (cur_income + inc_income)*(t - (cur_turn + inc_turn)) + n_connect_cnt*connect_cnt_w;
                 
                 selector.push(n_act,n_eva,n_hash,parent,false);
             }
@@ -481,13 +569,13 @@ class State {
 
         // actionを実行して次の状態に遷移する
         void move_forward(Action action) {
-            fin ^= action.x_y_turn_income_fin>>50;
+            fin ^= (action.x_y_turn_income_fin>>62) & 1;
             if(fin) return;
             cur_money += action.money;
-            cur_income += (action.x_y_turn_income_fin>>24) & ((1<<26) - 1);
-            cur_turn += (action.x_y_turn_income_fin>>12) & ((1<<12) - 1);
-            int x = (action.x_y_turn_income_fin) & ((1<<6) - 1);
-            int y = (action.x_y_turn_income_fin>>6) & ((1<<6) - 1);
+            cur_income += (action.x_y_turn_income_fin>>24) & ((1ULL<<26) - 1);
+            cur_turn += (action.x_y_turn_income_fin>>12) & ((1ULL<<12) - 1);
+            int x = (action.x_y_turn_income_fin) & ((1ULL<<6) - 1);
+            int y = (action.x_y_turn_income_fin>>6) & ((1ULL<<6) - 1);
             station_pos.push_back({x, y});
             for(int idx : house_on_grid13[x][y]){
                 vis_house[idx]++;
@@ -497,18 +585,31 @@ class State {
                 vis_office[idx]++;
                 if(vis_office[idx] == 1) connect_cnt++;
             }
+            if(action.x_y_turn_income_fin>>63){// 1手目
+                x = (action.x_y_turn_income_fin>>50) & ((1ULL<<6) - 1);
+                y = (action.x_y_turn_income_fin>>56) & ((1ULL<<6) - 1);
+                station_pos.push_back({x, y});
+                for(int idx : house_on_grid13[x][y]){
+                    vis_house[idx]++;
+                    if(vis_house[idx] == 1) connect_cnt++;
+                }
+                for(int idx : office_on_grid13[x][y]){
+                    vis_office[idx]++;
+                    if(vis_office[idx] == 1) connect_cnt++;
+                }
+            }
         }
 
         // actionを実行する前の状態に遷移する
         // 今の状態は、親からactionを実行して遷移した状態である
         void move_backward(Action action) {
-            fin ^= action.x_y_turn_income_fin>>50;
-            if(fin ^ action.x_y_turn_income_fin>>50) return;
+            fin ^= (action.x_y_turn_income_fin>>62) & 1;
+            if(fin ^ ((action.x_y_turn_income_fin>>62) & 1)) return;
             cur_money -= action.money;
-            cur_income -= (action.x_y_turn_income_fin>>24) & ((1<<26) - 1);
-            cur_turn -= (action.x_y_turn_income_fin>>12) & ((1<<12) - 1);
-            int x = (action.x_y_turn_income_fin) & ((1<<6) - 1);
-            int y = (action.x_y_turn_income_fin>>6) & ((1<<6) - 1);
+            cur_income -= (action.x_y_turn_income_fin>>24) & ((1ULL<<26) - 1);
+            cur_turn -= (action.x_y_turn_income_fin>>12) & ((1ULL<<12) - 1);
+            int x = (action.x_y_turn_income_fin) & ((1ULL<<6) - 1);
+            int y = (action.x_y_turn_income_fin>>6) & ((1ULL<<6) - 1);
             station_pos.pop_back();
             for(int idx : house_on_grid13[x][y]){
                 vis_house[idx]--;
@@ -517,6 +618,19 @@ class State {
             for(int idx : office_on_grid13[x][y]){
                 vis_office[idx]--;
                 if(vis_office[idx] == 0) connect_cnt--;
+            }
+            if(action.x_y_turn_income_fin>>63){// 1手目
+                x = (action.x_y_turn_income_fin>>50) & ((1ULL<<6) - 1);
+                y = (action.x_y_turn_income_fin>>56) & ((1ULL<<6) - 1);
+                station_pos.pop_back();
+                for(int idx : house_on_grid13[x][y]){
+                    vis_house[idx]--;
+                    if(vis_house[idx] == 0) connect_cnt--;
+                }
+                for(int idx : office_on_grid13[x][y]){
+                    vis_office[idx]--;
+                    if(vis_office[idx] == 0) connect_cnt--;
+                }
             }
         }
 
@@ -802,6 +916,9 @@ void input(){
 
     z_hash_office.assign(m,0);
     rep(i,m) z_hash_office[i] = xor128()%(int)1e9;
+
+    // parameter
+    connect_cnt_w = 200000/m;
 }
 
 // 操作をパスする
@@ -1353,76 +1470,76 @@ vector<tuple<int,int,int>> greedy_rail(vector<pair<int,int>> station_pos){
     return ans;
 }
 
-// 最初の1手
-pair<beam_search::State,pair<pair<int,int>,pair<int,int>> > first_step(){
-    // すべての人の家とオフィスをつなぐ候補を列挙する
-    vector<pair<pair<int,int>,pair<int,int>> > cand;
-    rep(i,m){
-        int sx = house[i].first,sy = house[i].second;
-        int tx = office[i].first,ty = office[i].second;
-        rep(j,13){
-            int nsx = sx + dx13[j], nsy = sy + dy13[j];
-            if(0 <= nsx && nsx < n && 0 <= nsy && nsy < n){
-                rep(k,13){
-                    int ntx = tx + dx13[k], nty = ty + dy13[k];
-                    if(0 <= ntx && ntx < n && 0 <= nty && nty < n) cand.push_back({{nsx,nsy},{ntx,nty}});
-                }
-            }
-        }
-    }
-    // 重複を取り除く
-    rep(i,cand.size()) if(cand[i].first > cand[i].second) swap(cand[i].first, cand[i].second);
-    sort(ALL(cand));
-    cand.erase(unique(ALL(cand)),cand.end());
+// // 最初の1手
+// pair<beam_search::State,pair<pair<int,int>,pair<int,int>> > first_step(){
+//     // すべての人の家とオフィスをつなぐ候補を列挙する
+//     vector<pair<pair<int,int>,pair<int,int>> > cand;
+//     rep(i,m){
+//         int sx = house[i].first,sy = house[i].second;
+//         int tx = office[i].first,ty = office[i].second;
+//         rep(j,13){
+//             int nsx = sx + dx13[j], nsy = sy + dy13[j];
+//             if(0 <= nsx && nsx < n && 0 <= nsy && nsy < n){
+//                 rep(k,13){
+//                     int ntx = tx + dx13[k], nty = ty + dy13[k];
+//                     if(0 <= ntx && ntx < n && 0 <= nty && nty < n) cand.push_back({{nsx,nsy},{ntx,nty}});
+//                 }
+//             }
+//         }
+//     }
+//     // 重複を取り除く
+//     rep(i,cand.size()) if(cand[i].first > cand[i].second) swap(cand[i].first, cand[i].second);
+//     sort(ALL(cand));
+//     cand.erase(unique(ALL(cand)),cand.end());
 
-    // 各スコアを計算する (含まれるpairの数)/(距離)
-    // めんどい後回し
+//     // 各スコアを計算する (含まれるpairの数)/(距離)
+//     // めんどい後回し
 
-    //収入が一番高くなるやつ
-    int mx_score = 0, mx_score_pos = -1;
-    vector<bool> vis_house(m,false); //めんどくさいから作ったけどいらない
-    vector<bool> vis_office(m,false);
-    rep(i,cand.size()){
-        auto [sx,sy] = cand[i].first;
-        auto [tx,ty] = cand[i].second;
-        int dist = abs(tx - sx) + abs(ty - sy);
-        if((dist - 1)*rail_cost + 2*station_cost > init_money) continue;
-        int cur_score = calc_score(vis_house,vis_office,sx,sy,tx,ty);
-        if(cur_score > mx_score){
-            mx_score = cur_score;
-            mx_score_pos = i;
-        }
-    }
-    auto [sx,sy] = cand[mx_score_pos].first;
-    auto [tx,ty] = cand[mx_score_pos].second;
+//     //収入が一番高くなるやつ
+//     int mx_score = 0, mx_score_pos = -1;
+//     vector<bool> vis_house(m,false); //めんどくさいから作ったけどいらない
+//     vector<bool> vis_office(m,false);
+//     rep(i,cand.size()){
+//         auto [sx,sy] = cand[i].first;
+//         auto [tx,ty] = cand[i].second;
+//         int dist = abs(tx - sx) + abs(ty - sy);
+//         if((dist - 1)*rail_cost + 2*station_cost > init_money) continue;
+//         int cur_score = calc_score(vis_house,vis_office,sx,sy,tx,ty);
+//         if(cur_score > mx_score){
+//             mx_score = cur_score;
+//             mx_score_pos = i;
+//         }
+//     }
+//     auto [sx,sy] = cand[mx_score_pos].first;
+//     auto [tx,ty] = cand[mx_score_pos].second;
 
-    beam_search::State ret;
-    ret.cur_turn = abs(sx - tx) + abs(sy - ty);
-    ret.cur_money = init_money - (abs(sx - tx) + abs(sy - ty) - 1)*rail_cost - station_cost*2;
-    assert(ret.cur_money >= 0);
-    ret.station_pos.push_back({sx,sy});
-    ret.station_pos.push_back({tx,ty});
+//     beam_search::State ret;
+//     ret.cur_turn = abs(sx - tx) + abs(sy - ty);
+//     ret.cur_money = init_money - (abs(sx - tx) + abs(sy - ty) - 1)*rail_cost - station_cost*2;
+//     assert(ret.cur_money >= 0);
+//     ret.station_pos.push_back({sx,sy});
+//     ret.station_pos.push_back({tx,ty});
 
-    ret.vis_house.assign(m,0);
-    ret.vis_office.assign(m,0);
+//     ret.vis_house.assign(m,0);
+//     ret.vis_office.assign(m,0);
     
-    for(int idx : house_on_grid13[sx][sy]) ret.vis_house[idx]++;
-    for(int idx : office_on_grid13[sx][sy]) ret.vis_office[idx]++;
+//     for(int idx : house_on_grid13[sx][sy]) ret.vis_house[idx]++;
+//     for(int idx : office_on_grid13[sx][sy]) ret.vis_office[idx]++;
 
-    for(int idx : house_on_grid13[tx][ty]) ret.vis_house[idx]++;
-    for(int idx : office_on_grid13[tx][ty]) ret.vis_office[idx]++;
+//     for(int idx : house_on_grid13[tx][ty]) ret.vis_house[idx]++;
+//     for(int idx : office_on_grid13[tx][ty]) ret.vis_office[idx]++;
 
-    ret.cur_income = 0;
-    // 収入を計算
-    rep(i,m) if(ret.vis_house[i] && ret.vis_office[i]) ret.cur_income += commute_dist[i];
+//     ret.cur_income = 0;
+//     // 収入を計算
+//     rep(i,m) if(ret.vis_house[i] && ret.vis_office[i]) ret.cur_income += commute_dist[i];
 
-    // 接続されていない家やオフィス
-    ret.connect_cnt = 0;
-    rep(i,m) if(ret.vis_office[i]) ret.connect_cnt++;
-    rep(i,m) if(ret.vis_house[i]) ret.connect_cnt++;
+//     // 接続されていない家やオフィス
+//     ret.connect_cnt = 0;
+//     rep(i,m) if(ret.vis_office[i]) ret.connect_cnt++;
+//     rep(i,m) if(ret.vis_house[i]) ret.connect_cnt++;
 
-    return {ret,{{sx,sy},{tx,ty}}};
-}
+//     return {ret,{{sx,sy},{tx,ty}}};
+// }
 
 int main(){
     input();
@@ -1430,26 +1547,37 @@ int main(){
 
     // ビームサーチの設定
     beam_search::Config config;
-    config.beam_width = 50 * 40 / sqrt(m);
+    config.beam_width = beam_width = 50 * 40 / sqrt(m);
     config.max_turn = 1e8; // 途中で止める実装にした
     config.hash_map_capacity = 1e4;
     config.nodes_capacity = 50*50*config.beam_width;
 
-    auto [sta,init_pos] = first_step();
+    // auto [sta,init_pos] = first_step();
 
+    beam_search::State sta;
+    sta.connect_cnt = 0;
+    sta.cur_income = 0;
+    sta.cur_money = init_money;
+    sta.cur_turn = 0;
+    sta.fin = 0;
+    sta.vis_house = vector<int>(m,0);
+    sta.vis_office = vector<int>(m,0);
     beam_search::Hash hash = 0;
-    rep(i,m){
-        if(sta.vis_house[i]) hash ^= z_hash_house[i];
-        if(sta.vis_office[i]) hash ^= z_hash_office[i];
-    }
+    // rep(i,m){
+    //     if(sta.vis_house[i]) hash ^= z_hash_house[i];
+    //     if(sta.vis_office[i]) hash ^= z_hash_office[i];
+    // }
     beam_search::Node node(beam_search::Action(), beam_search::Evaluator(),hash);
 
     vector<beam_search::Action> act = beam_search::beam_search(config,sta,node);
 
-    vector<pair<int,int>> station_pos = {init_pos.first,init_pos.second};
+    vector<pair<int,int>> station_pos;
     rep(i,act.size()){
-        if(act[i].x_y_turn_income_fin>>50) break;
-        station_pos.push_back({(act[i].x_y_turn_income_fin) & ((1<<6) - 1), (act[i].x_y_turn_income_fin>>6) & ((1<<6) - 1) });
+        if((act[i].x_y_turn_income_fin>>62) & 1) break;
+        station_pos.push_back({(act[i].x_y_turn_income_fin) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>6) & ((1ULL<<6) - 1) });
+        if(act[i].x_y_turn_income_fin>>63){//first_step
+            station_pos.push_back({(act[i].x_y_turn_income_fin>>50) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>56) & ((1ULL<<6) - 1) });
+        }
     }
     
     vector<tuple<int,int,int>> ans = greedy_rail(station_pos);

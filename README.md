@@ -194,3 +194,11 @@ Average Score (log10)  : 6.22230
 手を評価するのが難しいのが原因
 
 あと、ビームサーチで最終的な解を複数個持ってくる
+
+最初の一手もビームサーチで決める
+
+https://atcoder.jp/contests/ahc043/submissions/62865735
+
+Average Score          : 3,409,277.25
+
+Average Score (log10)  : 6.24180
