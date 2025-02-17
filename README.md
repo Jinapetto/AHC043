@@ -189,3 +189,8 @@ https://atcoder.jp/contests/ahc043/submissions/62861278
 Average Score          : 3,368,665.39
 
 Average Score (log10)  : 6.22230
+
+絶対スコアが貪欲を越せていない問題
+手を評価するのが難しいのが原因
+
+あと、ビームサーチで最終的な解を複数個持ってくる
