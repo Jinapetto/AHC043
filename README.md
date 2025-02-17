@@ -179,3 +179,13 @@ Average Score (log10)  : 6.19970
 ## 焼ける気がする
 - 収入が2000を超えたあたりからお金の管理が楽になるので焼けそう
 
+## 02/17
+ビーム幅、hashの導入、ビームサーチの終了条件などをいじった。
+
+hash で結構上がった
+
+https://atcoder.jp/contests/ahc043/submissions/62861278
+
+Average Score          : 3,368,665.39
+
+Average Score (log10)  : 6.22230

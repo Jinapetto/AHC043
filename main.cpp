@@ -31,6 +31,19 @@ vector<int> dy13 = {0,0,1,0,-1,1,1,-1,-1,0,2,0,-2};
 vector<int> dx4 = {1,0,-1,0};
 vector<int> dy4 = {0,1,0,-1};
 
+// Zobrist_hash
+vector<vector<int>> z_hash_grid;
+vector<int> z_hash_house;
+vector<int> z_hash_office;
+
+unsigned long xor128(void){
+	static unsigned long x = 123456789,y = 362436069,z = 541288629,w = 88675123;
+	unsigned long t;
+	t = (x^(x<<11));
+	x = y;y = z;z = w;
+	return(w = (w^(w>>19))^(t^(t>>8)));
+}
+
 namespace beam_search {
 
 template<class S, S (*op)(S, S), S (*e)()> struct segtree {
@@ -397,16 +410,19 @@ vector<vector<int>> calc_dist(vector<pair<int,int>>& station_pos){
     return dist;
 }
 
-pair<int,int> calc_inc_income(int x, int y, vector<int>& vis_house, vector<int>& vis_office, int connect_cnt){
+// {増える収入、connect_cnt} あとhashを参照でいじる
+pair<int,int> calc_inc_income(int x, int y, vector<int>& vis_house, vector<int>& vis_office, int connect_cnt, Hash& hash){
     int ret = 0;
     for(int idx : house_on_grid13[x][y]){
         if(vis_house[idx] == 0){
+            hash ^= z_hash_house[idx];
             connect_cnt++;
             if(vis_office[idx] != 0) ret += commute_dist[idx];
         }
     }
     for(int idx : office_on_grid13[x][y]){
         if(vis_office[idx] == 0){
+            hash ^= z_hash_office[idx];
             connect_cnt++;
             if(vis_house[idx] != 0) ret += commute_dist[idx];
         }
@@ -440,7 +456,10 @@ class State {
             vector<vector<int>> dist = calc_dist(station_pos);
             rep(x,n)rep(y,n){
                 if(dist[x][y] == 0) continue; //駅
-                auto [inc_income,n_connect_cnt] = calc_inc_income(x,y,vis_house,vis_office,connect_cnt);
+                // hash
+                Hash n_hash = hash;
+
+                auto [inc_income,n_connect_cnt] = calc_inc_income(x,y,vis_house,vis_office,connect_cnt,n_hash);
 
                 int cost = (dist[x][y] - 1)*rail_cost + station_cost;
                 
@@ -453,9 +472,7 @@ class State {
                 n_act.x_y_turn_income_fin = ll(x) | (ll(y)<<6) | (ll(inc_turn)<<12) | (ll(inc_income)<<24);
                 
                 Evaluator n_eva;
-                n_eva.score = (cur_money + inc_money) + max(0, (cur_income + inc_income)*(t - (cur_turn + inc_turn))) + n_connect_cnt*2000;
-
-                Hash n_hash = random()%(int)1e9;
+                n_eva.score = (cur_money + inc_money) + (cur_income + inc_income)*(t - (cur_turn + inc_turn)) + n_connect_cnt*2000;
                 
                 selector.push(n_act,n_eva,n_hash,parent,false);
             }
@@ -554,12 +571,13 @@ class Tree {
         }
 
         // 状態を更新しながら深さ優先探索を行い、次のノードの候補を全てselectorに追加する
-        void dfs(Selector& selector) {
+        int dfs(Selector& selector) {
             update_root();
-
+            int fin_cnt = 0;
             int v = root_;
             while (true) {
                 v = move_to_leaf(v);
+                if(state_.fin) fin_cnt++;
                 state_.expand(nodes_[v].evaluator, nodes_[v].hash, v, selector);
                 v = move_to_ancestor(v);
                 if (v == root_) {
@@ -567,6 +585,7 @@ class Tree {
                 }
                 v = move_to_right(v);
             }
+            return fin_cnt;
         }
 
         // 根からノードvまでのパスを取得する
@@ -707,7 +726,12 @@ vector<Action> beam_search(const Config& config, State state, Node root) {
 
     for (int turn = 0; turn < config.max_turn; ++turn) {
         // Euler Tour で selector に候補を追加する
-        tree.dfs(selector);
+        int fin_cnt = tree.dfs(selector);
+
+        // 終わっているノードがビーム幅と一致したら終了
+        if(fin_cnt == config.beam_width){
+            break;
+        }
 
         if (selector.have_finished()) {
             // ターン数最小化型の問題で実行可能解が見つかったとき
@@ -768,6 +792,16 @@ void input(){
             if(0 <= nx && nx < n && 0 <= ny && ny < n) office_on_grid13[nx][ny].push_back(i);
         }
     }
+
+    // Zobrist Hash
+    z_hash_grid.assign(n,vector<int>(n));
+    rep(i,n)rep(j,n) z_hash_grid[i][j] = xor128()%(int)1e9;
+
+    z_hash_house.assign(m,0);
+    rep(i,m) z_hash_house[i] = xor128()%(int)1e9;
+
+    z_hash_office.assign(m,0);
+    rep(i,m) z_hash_office[i] = xor128()%(int)1e9;
 }
 
 // 操作をパスする
@@ -1396,13 +1430,19 @@ int main(){
 
     // ビームサーチの設定
     beam_search::Config config;
-    config.beam_width = 50;
-    config.max_turn = min(m,200);
-    config.hash_map_capacity = 50*50*config.beam_width*config.max_turn;
+    config.beam_width = 50 * 40 / sqrt(m);
+    config.max_turn = 1e8; // 途中で止める実装にした
+    config.hash_map_capacity = 1e4;
     config.nodes_capacity = 50*50*config.beam_width;
 
     auto [sta,init_pos] = first_step();
-    beam_search::Node node(beam_search::Action(), beam_search::Evaluator(),0);
+
+    beam_search::Hash hash = 0;
+    rep(i,m){
+        if(sta.vis_house[i]) hash ^= z_hash_house[i];
+        if(sta.vis_office[i]) hash ^= z_hash_office[i];
+    }
+    beam_search::Node node(beam_search::Action(), beam_search::Evaluator(),hash);
 
     vector<beam_search::Action> act = beam_search::beam_search(config,sta,node);
 
