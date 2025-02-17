@@ -748,6 +748,20 @@ class Tree {
             return ret;
         }
 
+        // 全部のノードを返す
+        vector<int> get_all_leaf(const vector<int>& last_nodes) {
+            assert(!last_nodes.empty());
+            vector<int> ret;
+            for (int v : last_nodes) {
+                ret.push_back(v);
+            }
+            //ソートしておく
+            sort(ret.begin(),ret.end(),[&](int i,int j){
+                return nodes_[i].evaluator.evaluate() < nodes_[j].evaluator.evaluate();
+            });
+            return ret;
+        }
+
     private:
         State state_;
         ObjectPool<Node> nodes_;
@@ -823,7 +837,7 @@ class Tree {
 };
 
 // ビームサーチを行う関数
-vector<Action> beam_search(const Config& config, State state, Node root) {
+vector<vector<Action>> beam_search(const Config& config, State state, Node root) {
     Tree tree(state, config.nodes_capacity, root);
 
     // 探索中のノード集合
@@ -847,13 +861,13 @@ vector<Action> beam_search(const Config& config, State state, Node root) {
             break;
         }
 
-        if (selector.have_finished()) {
-            // ターン数最小化型の問題で実行可能解が見つかったとき
-            Candidate candidate = selector.get_finished_candidates()[0];
-            vector<Action> ret = tree.get_path(candidate.parent);
-            ret.push_back(candidate.action);
-            return ret;
-        }
+        // if (selector.have_finished()) {
+        //     // ターン数最小化型の問題で実行可能解が見つかったとき
+        //     Candidate candidate = selector.get_finished_candidates()[0];
+        //     vector<Action> ret = tree.get_path(candidate.parent);
+        //     ret.push_back(candidate.action);
+        //     return ret;
+        // }
         // 新しいノードを追加する
         for (const Candidate& candidate : selector.select()) {
             next_nodes.push_back(tree.add_leaf(candidate));
@@ -874,8 +888,13 @@ vector<Action> beam_search(const Config& config, State state, Node root) {
         selector.clear();
     }
     // ターン数固定型の問題で全ターンが終了したとき
-    int best_leaf = tree.get_best_leaf(curr_nodes);
-    return tree.get_path(best_leaf);
+    // int best_leaf = tree.get_best_leaf(curr_nodes);
+    // return tree.get_path(best_leaf);
+    // 最後に残った状態を全部返す
+    vector<int> all_leaf = tree.get_all_leaf(curr_nodes);
+    vector<vector<Action>> ret;
+    for(int idx : all_leaf) ret.push_back(tree.get_path(idx));
+    return ret;
 }
 
 } // namespace beam_search
@@ -1417,7 +1436,7 @@ vector<vector<pair<int,pair<int,int>>>> calc_dist_rail(vector<vector<int>>& cur_
 }
 
 // 駅を作る座標とその順番から答えを作成
-vector<tuple<int,int,int>> greedy_rail(vector<pair<int,int>> station_pos){
+pair<int,vector<tuple<int,int,int>>> greedy_rail(vector<pair<int,int>> station_pos){
     int cur_money = init_money;
     int cur_income = 0;
     // 今まで最もよい操作
@@ -1467,7 +1486,7 @@ vector<tuple<int,int,int>> greedy_rail(vector<pair<int,int>> station_pos){
     ans = mx_score_ans;
     assert(ans.size() <= t);
     while(ans.size() != t) ans.push_back({-1,-1,-1});
-    return ans;
+    return {mx_score, ans};
 }
 
 // // 最初の1手
@@ -1569,19 +1588,31 @@ int main(){
     // }
     beam_search::Node node(beam_search::Action(), beam_search::Evaluator(),hash);
 
-    vector<beam_search::Action> act = beam_search::beam_search(config,sta,node);
+    vector<vector<beam_search::Action>> act_v = beam_search::beam_search(config,sta,node);
 
-    vector<pair<int,int>> station_pos;
-    rep(i,act.size()){
-        if((act[i].x_y_turn_income_fin>>62) & 1) break;
-        station_pos.push_back({(act[i].x_y_turn_income_fin) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>6) & ((1ULL<<6) - 1) });
-        if(act[i].x_y_turn_income_fin>>63){//first_step
-            station_pos.push_back({(act[i].x_y_turn_income_fin>>50) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>56) & ((1ULL<<6) - 1) });
+    vector<tuple<int,int,int>> mx_score_ans;
+    int mx_score = 0;
+
+    for(vector<beam_search::Action>& act : act_v){
+        if((double)clock()/CLOCKS_PER_SEC > 2.9) break;
+        
+        vector<pair<int,int>> station_pos;
+        rep(i,act.size()){
+            if((act[i].x_y_turn_income_fin>>62) & 1) break;
+            station_pos.push_back({(act[i].x_y_turn_income_fin) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>6) & ((1ULL<<6) - 1) });
+            if(act[i].x_y_turn_income_fin>>63){//first_step
+                station_pos.push_back({(act[i].x_y_turn_income_fin>>50) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>56) & ((1ULL<<6) - 1) });
+            }
+        }
+        auto [cur_score, cur_ans] = greedy_rail(station_pos);
+        if(mx_score < cur_score){
+            mx_score = cur_score;
+            mx_score_ans = cur_ans;
         }
     }
     
-    vector<tuple<int,int,int>> ans = greedy_rail(station_pos);
-    for(auto [out1, out2, out3] : ans){
+    
+    for(auto [out1, out2, out3] : mx_score_ans){
         if(out1 != -1) cout << out1 << ' ' << out2 << ' ' << out3 << '\n';
         else cout << -1 << '\n';
     }

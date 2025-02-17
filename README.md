@@ -202,3 +202,11 @@ https://atcoder.jp/contests/ahc043/submissions/62865735
 Average Score          : 3,409,277.25
 
 Average Score (log10)  : 6.24180
+
+ビームサーチを多終点にした
+
+https://atcoder.jp/contests/ahc043/submissions/62866594
+
+Average Score          : 3,414,535.82
+
+Average Score (log10)  : 6.24303
