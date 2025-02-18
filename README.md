@@ -311,3 +311,12 @@ https://atcoder.jp/contests/ahc043/submissions/62894971
 Average Score          : 4,227,675.60
 
 Average Score (log10)  : 6.29917
+
+焼きなましの差分更新実装案
+- station_pos にidxを振る
+- それぞれのstation_posに対してターンを求める
+- 各家、オフィスについてカバーされるようなstation_posのidxをsetで管理する。setはstation_posのターンでソートしておく
+- また各station_pos が最初にカバーするような総和を持つ
+- 各遷移において、今まで通りO(|station_pos|) でターンを求める
+
+明日の自分がんばってくれー
