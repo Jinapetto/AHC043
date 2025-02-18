@@ -239,3 +239,13 @@ https://atcoder.jp/contests/ahc043/submissions/62883558
 Average Score          : 3,820,908.26
 
 Average Score (log10)  : 6.26950
+
+ビーム幅をちゃんと考えた
+
+ビームサーチの多終点を再開したが、ほとんど焼きなますため意味なし
+
+https://atcoder.jp/contests/ahc043/submissions/62885763
+
+Average Score          : 3,811,381.71
+
+Average Score (log10)  : 6.27080
