@@ -260,3 +260,11 @@ https://atcoder.jp/contests/ahc043/submissions/62886935
 Average Score          : 3,819,295.94
 
 Average Score (log10)  : 6.27426
+
+線路のつなぐ向き？をランダムにした
+
+https://atcoder.jp/contests/ahc043/submissions/62888002
+
+Average Score          : 3,860,428.91
+
+Average Score (log10)  : 6.27737

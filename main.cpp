@@ -51,6 +51,8 @@ unsigned long xor128(void){
 	return(w = (w^(w>>19))^(t^(t>>8)));
 }
 
+mt19937 gen(random());
+
 namespace beam_search {
 
 template<class S, S (*op)(S, S), S (*e)()> struct segtree {
@@ -1345,11 +1347,14 @@ pair<int,int> construct_yorimichi(int sx,int sy,int tx,int ty, vector<vector<int
     vector<pair<int,int>> pos;
     int x = tx,y = ty;
     while(!(x == sx && y == sy)){
+        vector<int> idx = {0,1,2,3};
+        shuffle(idx.begin(),idx.end(),gen);
+        
         rep(i,4){
-            int nx = x + dx4[i];
-            int ny = y + dy4[i];
+            int nx = x + dx4[idx[i]];
+            int ny = y + dy4[idx[i]];
             if(0 <= nx && nx < n && 0 <= ny && ny < n && dist[nx][ny] + 1 == dist[x][y]){
-                dir.push_back(i);
+                dir.push_back(idx[i]);
                 pos.push_back({nx,ny});
                 x = nx;
                 y = ny;
@@ -1660,7 +1665,7 @@ struct status{
             }
 
             cur_turn += use_turn;
-            score += inc_income*(1000 - cur_turn) - station_cost - (use_turn - 1)*rail_cost;
+            score += inc_income*(800 - cur_turn) - station_cost - (use_turn - 1)*rail_cost;
         }
         return score;
     }
