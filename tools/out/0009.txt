@@ -1,3 +1,6 @@
+# start_size = 37
+# yaki_cnt = 7147650
+# end_size = 37
 0 7 28
 2 26 28
 2 25 28

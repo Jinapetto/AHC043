@@ -224,3 +224,18 @@ Average Score (log10)  : 6.25520
 
 焼きなましは遷移を増やす、差分更新を導入する
 
+## 02/18
+焼きなましの遷移をいろいろやってみた
+- 挿入
+- 削除
+- 1マスずらす
+
+が、全部だめ　謎
+
+焼きなましの開始収入をいじったら上がった。
+
+https://atcoder.jp/contests/ahc043/submissions/62883558
+
+Average Score          : 3,820,908.26
+
+Average Score (log10)  : 6.26950

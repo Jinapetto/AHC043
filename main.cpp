@@ -1358,7 +1358,7 @@ pair<int,int> construct_yorimichi(int sx,int sy,int tx,int ty, vector<vector<int
     // 矢印 -> 答え
     // d : v > ^ < 
     int pre_ans_sz = ans.size();
-    for(int i = 0;i < dir.size() - 1;i++){
+    for(int i = 0;i < (int)dir.size() - 1;i++){
         if(cur_grid[pos[i].first][pos[i].second] == 0) continue;
         assert(cur_grid[pos[i].first][pos[i].second] == -1);
 
@@ -1483,7 +1483,7 @@ pair<need_yaki,vector<tuple<int,int,int>>> greedy_rail(vector<pair<int,int>> sta
         // 駅を作る
         make_station_rail(x,y,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
 
-        if(cur_income >= 3000 && ret_yaki.yaki_l == -1){
+        if(cur_income >= 1000 && ret_yaki.yaki_l == -1){
             ret_yaki.yaki_l = i + 1;
             ret_yaki.yaki_turn_l = ans.size();
             ret_yaki.base_cur_grid = cur_grid;
@@ -1585,18 +1585,22 @@ struct status{
     int yaki_turn_l;
     vector<bool> base_vis_office;
     vector<bool> base_vis_house;
+    vector<vector<bool>> is_station;
 
     status(vector<pair<int,int>>& _station_pos, int _yaki_l, int _yaki_turn_l, vector<vector<int>>& cur_grid) : yaki_l(_yaki_l), yaki_turn_l(_yaki_turn_l){
         assert(yaki_l != -1);
         base_vis_house.assign(m,false);
         base_vis_office.assign(m,false);
+        is_station.assign(n,vector<bool>(n,false));
         rep(i,yaki_l){
             base_station_pos.push_back(_station_pos[i]);
             auto [x,y] = _station_pos[i];
+            is_station[x][y] = true;
             for(auto idx : house_on_grid13[x][y]) base_vis_house[idx] = true;
             for(auto idx : office_on_grid13[x][y]) base_vis_office[idx] = true;
         }
         for(int i = yaki_l;i < _station_pos.size();i++){
+            is_station[_station_pos[i].first][_station_pos[i].second] = true;
             station_pos.push_back(_station_pos[i]);
         }
 
@@ -1650,7 +1654,7 @@ struct status{
             }
 
             cur_turn += use_turn;
-            score += inc_income*(t - cur_turn);
+            score += inc_income*(1000 - cur_turn) - station_cost - (use_turn - 1)*rail_cost;
         }
         return score;
     }
@@ -1669,9 +1673,13 @@ struct status{
         int score = calc_score(station_pos);
         for(int yaki_cnt = 0;true;yaki_cnt++){
             if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
-            if(cur_time > end_time) break;
-            int op = 0;
+            if(cur_time > end_time){
+                cout << "# yaki_cnt = " << yaki_cnt << '\n';
+                break;
+            }
+            int op = xor128()%1;
             if(op == 0){ // swap
+                if(station_pos.size() <= 1) continue;
                 int i = xor128()%station_pos.size();
                 int j = xor128()%station_pos.size();
                 if(i == j) continue;
@@ -1680,12 +1688,69 @@ struct status{
 
                 int nscore = calc_score(station_pos);
 
-                if(shift(1000,0,end_time,start_time,nscore - score,cur_time)){
+                if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
                     score = nscore;
                 }else{
                     swap(station_pos[i],station_pos[j]);
                 }
             }
+            // else if(op == 1){ // insert
+            //     int x = xor128()%n;
+            //     int y = xor128()%n;
+            //     int i = xor128()%(station_pos.size() + 1);
+
+            //     if(is_station[x][y]) continue;
+                
+            //     station_pos.insert(station_pos.begin() + i,{x,y});
+
+            //     int nscore = calc_score(station_pos);
+
+            //     if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+            //         is_station[x][y] = true;
+            //         score = nscore;
+            //     }else{
+            //         station_pos.erase(station_pos.begin() + i);
+            //     }
+            // }else if(op == 2){ // delate
+            //     if(station_pos.size() == 0) continue;
+            //     int i = xor128()%station_pos.size();
+
+            //     pair<int,int> del = station_pos[i];
+                
+            //     station_pos.erase(station_pos.begin() + i);
+
+            //     int nscore = calc_score(station_pos);
+
+            //     if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+            //         is_station[del.first][del.second] = false;
+            //         score = nscore;
+            //     }else{
+            //         station_pos.insert(station_pos.begin() + i,del);
+            //     }
+            // }else if(op == 3){ // shift
+            //     if(station_pos.size() == 0) continue;
+            //     int i = xor128()%station_pos.size();
+            //     int dir = xor128()%4;
+
+            //     int nx = station_pos[i].first + dx4[dir];
+            //     int ny = station_pos[i].second + dy4[dir];
+
+            //     if(nx < 0 || n <= nx || ny < 0 || n <= ny || is_station[nx][ny]) continue;
+                
+            //     station_pos[i].first += dx4[dir];
+            //     station_pos[i].second += dy4[dir];
+
+            //     int nscore = calc_score(station_pos);
+
+            //     if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+            //         is_station[nx - dx4[dir]][ny - dy4[dir]] = false;
+            //         is_station[nx][ny] = true;
+            //         score = nscore;
+            //     }else{
+            //         station_pos[i].first -= dx4[dir];
+            //         station_pos[i].second -= dy4[dir];  
+            //     }
+            // }
         }
         vector<pair<int,int>> ret = base_station_pos;
         rep(i,station_pos.size()) ret.push_back(station_pos[i]);
@@ -1759,8 +1824,10 @@ int main(){
 
     if(yaki_init.first.yaki_l != -1 && yaki_init.first.yaki_l != station_pos.size()){
         status st(station_pos, yaki_init.first.yaki_l, yaki_init.first.yaki_turn_l, yaki_init.first.base_cur_grid);
-    
+        cout << "# start_size = " << station_pos.size() << '\n';
         station_pos = st.yaki();
+        cout << "# end_size = " << station_pos.size() << '\n';
+
     }
 
     pair<need_yaki,vector<tuple<int,int,int>> > ans = greedy_rail(station_pos);
