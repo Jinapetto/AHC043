@@ -9,8 +9,8 @@ using ull = unsigned long long;
 int n,m,init_money,t;
 vector<pair<int,int>> house;
 vector<pair<int,int>> office;
-int station_cost = 5000;
-int rail_cost = 100;
+const int station_cost = 5000;
+const int rail_cost = 100;
 // そのマスにある家のidx
 vector<vector<vector<int>>> house_on_grid;
 // そのマスにあるオフィスのidx
@@ -40,6 +40,10 @@ vector<int> dy25 = {0,0,1,0,-1,1,1,-1,-1,0,2,0,-2,-2,-1,1,2,2,1,-1,-2,0,3,0,-3};
 vector<vector<int>> z_hash_grid;
 vector<int> z_hash_house;
 vector<int> z_hash_office;
+
+// parameter
+const int yaki_start_income = 1000;
+const int yaki_start_money = 6000; // 両方満たしたときに焼きなます
 
 //parameter inputで計算
 int connect_cnt_w;
@@ -1497,7 +1501,7 @@ pair<need_yaki,vector<tuple<int,int,int>>> greedy_rail(vector<pair<int,int>> sta
         // 駅を作る
         make_station_rail(x,y,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
 
-        if(cur_income >= 1000 && ret_yaki.yaki_l == -1){
+        if((cur_money >= yaki_start_money && cur_income >= yaki_start_income) && ret_yaki.yaki_l == -1){
             ret_yaki.yaki_l = i + 1;
             ret_yaki.yaki_turn_l = ans.size();
             ret_yaki.base_cur_grid = cur_grid;

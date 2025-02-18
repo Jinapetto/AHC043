@@ -304,3 +304,10 @@ Average Score (log10)  : 6.29664
 Average Score          : 4,218,719.54
 
 Average Score (log10)  : 6.29745
+
+焼きなましのスタート地点を変更
+https://atcoder.jp/contests/ahc043/submissions/62894971
+
+Average Score          : 4,227,675.60
+
+Average Score (log10)  : 6.29917
