@@ -32,6 +32,10 @@ vector<int> dy13 = {0,0,1,0,-1,1,1,-1,-1,0,2,0,-2};
 vector<int> dx4 = {1,0,-1,0};
 vector<int> dy4 = {0,1,0,-1};
 
+// 25近傍
+vector<int> dx25 = {0,1,0,-1,0,1,-1,-1,1,2,0,-2,0,1,2,2,1,-1,-2,-2,-1,3,0,-3,0};
+vector<int> dy25 = {0,0,1,0,-1,1,1,-1,-1,0,2,0,-2,-2,-1,1,2,2,1,-1,-2,0,3,0,-3};
+
 // Zobrist_hash
 vector<vector<int>> z_hash_grid;
 vector<int> z_hash_house;
@@ -1694,7 +1698,7 @@ struct status{
                 cout << "# yaki_cnt = " << yaki_cnt << '\n';
                 break;
             }
-            int op = xor128()%4;
+            int op = xor128()%10;
             if(op == 0){ // swap
                 if(station_pos.size() <= 1) continue;
                 int i = xor128()%station_pos.size();
@@ -1750,25 +1754,26 @@ struct status{
                 if(station_pos.size() == 0) continue;
                 if(score.second == 0) continue;
                 int i = xor128()%(score.second);//ターン超過していない、評価されている部分を動かす
-                int dir = xor128()%4;
+                int dir = xor128()%12;
+                dir++; // 最初の{0,0} はいらない
 
-                int nx = station_pos[i].first + dx4[dir];
-                int ny = station_pos[i].second + dy4[dir];
+                int nx = station_pos[i].first + dx13[dir];
+                int ny = station_pos[i].second + dy13[dir];
 
                 if(nx < 0 || n <= nx || ny < 0 || n <= ny || is_station[nx][ny]) continue;
                 
-                station_pos[i].first += dx4[dir];
-                station_pos[i].second += dy4[dir];
+                station_pos[i].first += dx13[dir];
+                station_pos[i].second += dy13[dir];
 
                 pair<int,int> nscore = calc_score(station_pos);
 
                 if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
-                    is_station[nx - dx4[dir]][ny - dy4[dir]] = false;
+                    is_station[nx - dx13[dir]][ny - dy13[dir]] = false;
                     is_station[nx][ny] = true;
                     score = nscore;
                 }else{
-                    station_pos[i].first -= dx4[dir];
-                    station_pos[i].second -= dy4[dir];  
+                    station_pos[i].first -= dx13[dir];
+                    station_pos[i].second -= dy13[dir];  
                 }
             }
         }
@@ -1870,7 +1875,9 @@ int main(){
             }
         }
     }
-
+    int real_sz = 0;
+    for(auto [out1, out2, out3] : ans.second) if(out1 == 0) real_sz++;
+    cout << "# real_sz = " << real_sz << endl;
     for(auto [out1, out2, out3] : ans.second){
         if(out1 != -1) cout << out1 << ' ' << out2 << ' ' << out3 << '\n';
         else cout << -1 << '\n';

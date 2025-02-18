@@ -289,3 +289,18 @@ https://atcoder.jp/contests/ahc043/submissions/62893174
 Average Score          : 4,172,336.26
 
 Average Score (log10)  : 6.29288
+
+shift の遷移を13近傍にした
+https://atcoder.jp/contests/ahc043/submissions/62894056
+
+Average Score          : 4,193,622.90
+
+Average Score (log10)  : 6.29664
+
+これ最初の1近傍いらないですね
+
+修正。たぶん上振れ
+
+Average Score          : 4,218,719.54
+
+Average Score (log10)  : 6.29745
