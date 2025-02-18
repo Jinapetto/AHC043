@@ -268,3 +268,16 @@ https://atcoder.jp/contests/ahc043/submissions/62888002
 Average Score          : 3,860,428.91
 
 Average Score (log10)  : 6.27737
+
+## 大幅な改善
+焼きなましが効かなかったのは、ターンが超過していた時に、積極的に消してしまっていたためだった。
+
+ターンが超過したときに、そこをマイナスにするのではなく、評価しないことにしたらスコアがかなり伸びた
+
+これでもかなり適当で、ターン超過したときは挿入、削除の遷移をしないなどをしたほうがよさそう
+
+https://atcoder.jp/contests/ahc043/submissions/62889541
+
+Average Score          : 4,165,275.83
+
+Average Score (log10)  : 6.29024

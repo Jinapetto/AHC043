@@ -1665,6 +1665,7 @@ struct status{
             }
 
             cur_turn += use_turn;
+            if(cur_turn > t) continue; // ターンが超過した場合、評価をしない
             score += inc_income*(800 - cur_turn) - station_cost - (use_turn - 1)*rail_cost;
         }
         return score;
@@ -1682,13 +1683,14 @@ struct status{
         double cur_time = start_time;
         double end_time = 2.9;
         int score = calc_score(station_pos);
+        
         for(int yaki_cnt = 0;true;yaki_cnt++){
             if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
             if(cur_time > end_time){
                 cout << "# yaki_cnt = " << yaki_cnt << '\n';
                 break;
             }
-            int op = xor128()%1;
+            int op = xor128()%4;
             if(op == 0){ // swap
                 if(station_pos.size() <= 1) continue;
                 int i = xor128()%station_pos.size();
@@ -1705,63 +1707,63 @@ struct status{
                     swap(station_pos[i],station_pos[j]);
                 }
             }
-            // else if(op == 1){ // insert
-            //     int x = xor128()%n;
-            //     int y = xor128()%n;
-            //     int i = xor128()%(station_pos.size() + 1);
+            else if(op == 1){ // insert
+                int x = xor128()%n;
+                int y = xor128()%n;
+                int i = xor128()%(station_pos.size() + 1);
 
-            //     if(is_station[x][y]) continue;
+                if(is_station[x][y]) continue;
                 
-            //     station_pos.insert(station_pos.begin() + i,{x,y});
+                station_pos.insert(station_pos.begin() + i,{x,y});
 
-            //     int nscore = calc_score(station_pos);
+                int nscore = calc_score(station_pos);
 
-            //     if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
-            //         is_station[x][y] = true;
-            //         score = nscore;
-            //     }else{
-            //         station_pos.erase(station_pos.begin() + i);
-            //     }
-            // }else if(op == 2){ // delate
-            //     if(station_pos.size() == 0) continue;
-            //     int i = xor128()%station_pos.size();
+                if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+                    is_station[x][y] = true;
+                    score = nscore;
+                }else{
+                    station_pos.erase(station_pos.begin() + i);
+                }
+            }else if(op == 2){ // delate
+                if(station_pos.size() == 0) continue;
+                int i = xor128()%station_pos.size();
 
-            //     pair<int,int> del = station_pos[i];
+                pair<int,int> del = station_pos[i];
                 
-            //     station_pos.erase(station_pos.begin() + i);
+                station_pos.erase(station_pos.begin() + i);
 
-            //     int nscore = calc_score(station_pos);
+                int nscore = calc_score(station_pos);
 
-            //     if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
-            //         is_station[del.first][del.second] = false;
-            //         score = nscore;
-            //     }else{
-            //         station_pos.insert(station_pos.begin() + i,del);
-            //     }
-            // }else if(op == 3){ // shift
-            //     if(station_pos.size() == 0) continue;
-            //     int i = xor128()%station_pos.size();
-            //     int dir = xor128()%4;
+                if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+                    is_station[del.first][del.second] = false;
+                    score = nscore;
+                }else{
+                    station_pos.insert(station_pos.begin() + i,del);
+                }
+            }else if(op == 3){ // shift
+                if(station_pos.size() == 0) continue;
+                int i = xor128()%station_pos.size();
+                int dir = xor128()%4;
 
-            //     int nx = station_pos[i].first + dx4[dir];
-            //     int ny = station_pos[i].second + dy4[dir];
+                int nx = station_pos[i].first + dx4[dir];
+                int ny = station_pos[i].second + dy4[dir];
 
-            //     if(nx < 0 || n <= nx || ny < 0 || n <= ny || is_station[nx][ny]) continue;
+                if(nx < 0 || n <= nx || ny < 0 || n <= ny || is_station[nx][ny]) continue;
                 
-            //     station_pos[i].first += dx4[dir];
-            //     station_pos[i].second += dy4[dir];
+                station_pos[i].first += dx4[dir];
+                station_pos[i].second += dy4[dir];
 
-            //     int nscore = calc_score(station_pos);
+                int nscore = calc_score(station_pos);
 
-            //     if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
-            //         is_station[nx - dx4[dir]][ny - dy4[dir]] = false;
-            //         is_station[nx][ny] = true;
-            //         score = nscore;
-            //     }else{
-            //         station_pos[i].first -= dx4[dir];
-            //         station_pos[i].second -= dy4[dir];  
-            //     }
-            // }
+                if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+                    is_station[nx - dx4[dir]][ny - dy4[dir]] = false;
+                    is_station[nx][ny] = true;
+                    score = nscore;
+                }else{
+                    station_pos[i].first -= dx4[dir];
+                    station_pos[i].second -= dy4[dir];  
+                }
+            }
         }
         vector<pair<int,int>> ret = base_station_pos;
         rep(i,station_pos.size()) ret.push_back(station_pos[i]);
@@ -1838,9 +1840,9 @@ int main(){
     // 焼きなます場合
     if(ans.first.yaki_l != -1 && ans.first.yaki_l != station_pos.size()){
         status st(station_pos, ans.first.yaki_l, ans.first.yaki_turn_l, ans.first.base_cur_grid);
-        // cout << "# start_size = " << station_pos.size() << '\n';
+        cout << "# start_size = " << station_pos.size() << '\n';
         station_pos = st.yaki();
-        // cout << "# end_size = " << station_pos.size() << '\n';
+        cout << "# end_size = " << station_pos.size() << '\n';
         ans = greedy_rail(station_pos);
     }else{ // 焼かない場合
         // ほとんどそんざいしないらしい
@@ -1862,7 +1864,6 @@ int main(){
         }
     }
 
-    cout << "# " << station_pos.size() << endl;
     for(auto [out1, out2, out3] : ans.second){
         if(out1 != -1) cout << out1 << ' ' << out2 << ' ' << out3 << '\n';
         else cout << -1 << '\n';
