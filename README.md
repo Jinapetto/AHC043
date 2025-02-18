@@ -281,3 +281,11 @@ https://atcoder.jp/contests/ahc043/submissions/62889541
 Average Score          : 4,165,275.83
 
 Average Score (log10)  : 6.29024
+
+shift, del をターン超過しない範囲に適用、insertをターン超過したときにはしない
+
+https://atcoder.jp/contests/ahc043/submissions/62893174
+
+Average Score          : 4,172,336.26
+
+Average Score (log10)  : 6.29288

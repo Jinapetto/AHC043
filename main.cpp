@@ -1598,6 +1598,9 @@ struct status{
     vector<bool> base_vis_house;
     vector<vector<bool>> is_station;
 
+    double start_temp = 100;
+    double end_temp = 0;
+
     status(vector<pair<int,int>>& _station_pos, int _yaki_l, int _yaki_turn_l, vector<vector<int>>& cur_grid) : yaki_l(_yaki_l), yaki_turn_l(_yaki_turn_l){
         assert(yaki_l != -1);
         base_vis_house.assign(m,false);
@@ -1637,7 +1640,8 @@ struct status{
         }
     }
 
-    int calc_score(vector<pair<int,int>>& cur_station_pos){
+    // {score, turn超過したidx}
+    pair<int,int> calc_score(vector<pair<int,int>>& cur_station_pos){
         vector<bool> vis_house = base_vis_house;
         vector<bool> vis_office = base_vis_office;
         int score = 0;
@@ -1665,10 +1669,10 @@ struct status{
             }
 
             cur_turn += use_turn;
-            if(cur_turn > t) continue; // ターンが超過した場合、評価をしない
+            if(cur_turn > t) return {score, i}; // ターンが超過した場合、評価をしない
             score += inc_income*(800 - cur_turn) - station_cost - (use_turn - 1)*rail_cost;
         }
-        return score;
+        return {score, station_pos.size()};
     }
 
     bool shift(double start_temp,double end_temp,double time_limit,double start_time,double scoredist,double now_time){
@@ -1682,7 +1686,7 @@ struct status{
         double start_time = (double)clock()/CLOCKS_PER_SEC;
         double cur_time = start_time;
         double end_time = 2.9;
-        int score = calc_score(station_pos);
+        pair<int,int> score = calc_score(station_pos);
         
         for(int yaki_cnt = 0;true;yaki_cnt++){
             if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
@@ -1699,15 +1703,16 @@ struct status{
                 
                 swap(station_pos[i],station_pos[j]);
 
-                int nscore = calc_score(station_pos);
+                pair<int,int> nscore = calc_score(station_pos);
 
-                if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+                if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
                     score = nscore;
                 }else{
                     swap(station_pos[i],station_pos[j]);
                 }
             }
             else if(op == 1){ // insert
+                if(score.second != station_pos.size()) continue; // ターン超過しているときは、挿入しない
                 int x = xor128()%n;
                 int y = xor128()%n;
                 int i = xor128()%(station_pos.size() + 1);
@@ -1716,9 +1721,9 @@ struct status{
                 
                 station_pos.insert(station_pos.begin() + i,{x,y});
 
-                int nscore = calc_score(station_pos);
+                pair<int,int> nscore = calc_score(station_pos);
 
-                if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+                if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
                     is_station[x][y] = true;
                     score = nscore;
                 }else{
@@ -1726,15 +1731,16 @@ struct status{
                 }
             }else if(op == 2){ // delate
                 if(station_pos.size() == 0) continue;
-                int i = xor128()%station_pos.size();
+                if(score.second == 0) continue;
+                int i = xor128()%(score.second); //ターン超過していない、評価されている部分を削除する
 
                 pair<int,int> del = station_pos[i];
                 
                 station_pos.erase(station_pos.begin() + i);
 
-                int nscore = calc_score(station_pos);
+                pair<int,int> nscore = calc_score(station_pos);
 
-                if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+                if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
                     is_station[del.first][del.second] = false;
                     score = nscore;
                 }else{
@@ -1742,7 +1748,8 @@ struct status{
                 }
             }else if(op == 3){ // shift
                 if(station_pos.size() == 0) continue;
-                int i = xor128()%station_pos.size();
+                if(score.second == 0) continue;
+                int i = xor128()%(score.second);//ターン超過していない、評価されている部分を動かす
                 int dir = xor128()%4;
 
                 int nx = station_pos[i].first + dx4[dir];
@@ -1753,9 +1760,9 @@ struct status{
                 station_pos[i].first += dx4[dir];
                 station_pos[i].second += dy4[dir];
 
-                int nscore = calc_score(station_pos);
+                pair<int,int> nscore = calc_score(station_pos);
 
-                if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+                if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
                     is_station[nx - dx4[dir]][ny - dy4[dir]] = false;
                     is_station[nx][ny] = true;
                     score = nscore;

@@ -1,5 +1,5 @@
 # start_size = 26
-# yaki_cnt = 5256420
+# yaki_cnt = 5932630
 # end_size = 27
 0 5 24
 2 7 21
