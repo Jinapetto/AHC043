@@ -1358,7 +1358,7 @@ pair<int,int> construct_yorimichi(int sx,int sy,int tx,int ty, vector<vector<int
     // 矢印 -> 答え
     // d : v > ^ < 
     int pre_ans_sz = ans.size();
-    for(int i = 0;i < dir.size() - 1;i++){
+    for(int i = 0;i < (int)dir.size() - 1;i++){
         if(cur_grid[pos[i].first][pos[i].second] == 0) continue;
         assert(cur_grid[pos[i].first][pos[i].second] == -1);
 
@@ -1435,10 +1435,18 @@ vector<vector<pair<int,pair<int,int>>>> calc_dist_rail(vector<vector<int>>& cur_
     return dist;
 }
 
+struct need_yaki{
+    // 収入がある一定以上になるstaion_posのidx
+    int yaki_l = -1;
+    int yaki_turn_l = -1;
+    vector<vector<int>> base_cur_grid;
+};
+
 // 駅を作る座標とその順番から答えを作成
-pair<int,vector<tuple<int,int,int>>> greedy_rail(vector<pair<int,int>> station_pos){
+pair<need_yaki,vector<tuple<int,int,int>>> greedy_rail(vector<pair<int,int>> station_pos){
     int cur_money = init_money;
     int cur_income = 0;
+    need_yaki ret_yaki;
     // 今まで最もよい操作
     vector<tuple<int,int,int>> mx_score_ans;
     int mx_score = 0;
@@ -1475,6 +1483,12 @@ pair<int,vector<tuple<int,int,int>>> greedy_rail(vector<pair<int,int>> station_p
         // 駅を作る
         make_station_rail(x,y,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
 
+        if(cur_income >= 1000 && ret_yaki.yaki_l == -1){
+            ret_yaki.yaki_l = i + 1;
+            ret_yaki.yaki_turn_l = ans.size();
+            ret_yaki.base_cur_grid = cur_grid;
+        }
+
         // 途中でやめる
         if(ans.size() > t) break;
         int cur_score = cur_money + cur_income*(t - ans.size());
@@ -1486,7 +1500,7 @@ pair<int,vector<tuple<int,int,int>>> greedy_rail(vector<pair<int,int>> station_p
     ans = mx_score_ans;
     assert(ans.size() <= t);
     while(ans.size() != t) ans.push_back({-1,-1,-1});
-    return {mx_score, ans};
+    return {ret_yaki, ans};
 }
 
 // // 最初の1手
@@ -1560,6 +1574,190 @@ pair<int,vector<tuple<int,int,int>>> greedy_rail(vector<pair<int,int>> station_p
 //     return {ret,{{sx,sy},{tx,ty}}};
 // }
 
+// 焼きなましを行うためのstruct
+struct status{
+    // 十分に稼ぎがないときは変更しない
+    vector<pair<int,int>> base_station_pos;
+    vector<pair<int,int>> station_pos;
+    // base_station_pos からの距離
+    vector<vector<int>> base_dist;
+    int yaki_l;
+    int yaki_turn_l;
+    vector<bool> base_vis_office;
+    vector<bool> base_vis_house;
+    vector<vector<bool>> is_station;
+
+    status(vector<pair<int,int>>& _station_pos, int _yaki_l, int _yaki_turn_l, vector<vector<int>>& cur_grid) : yaki_l(_yaki_l), yaki_turn_l(_yaki_turn_l){
+        assert(yaki_l != -1);
+        base_vis_house.assign(m,false);
+        base_vis_office.assign(m,false);
+        is_station.assign(n,vector<bool>(n,false));
+        rep(i,yaki_l){
+            base_station_pos.push_back(_station_pos[i]);
+            auto [x,y] = _station_pos[i];
+            is_station[x][y] = true;
+            for(auto idx : house_on_grid13[x][y]) base_vis_house[idx] = true;
+            for(auto idx : office_on_grid13[x][y]) base_vis_office[idx] = true;
+        }
+        for(int i = yaki_l;i < _station_pos.size();i++){
+            is_station[_station_pos[i].first][_station_pos[i].second] = true;
+            station_pos.push_back(_station_pos[i]);
+        }
+
+        
+        base_dist.assign(n,vector<int>(n,(int)1e9));
+        queue<pair<int,int>> que;
+        for(auto [x,y] : base_station_pos){
+            base_dist[x][y] = 0;
+            que.push({x,y});
+        }
+
+        while(!que.empty()){
+            auto [x,y] = que.front();
+            que.pop();
+            rep(i,4){
+                int nx = x + dx4[i];
+                int ny = y + dy4[i];
+                if(0 <= nx && nx < n && 0 <= ny && ny < n && base_dist[nx][ny] == (int)1e9 && cur_grid[nx][ny] == -1){
+                    base_dist[nx][ny] = base_dist[x][y] + 1;
+                    que.push({nx,ny});
+                }
+            }
+        }
+    }
+
+    int calc_score(vector<pair<int,int>>& cur_station_pos){
+        vector<bool> vis_house = base_vis_house;
+        vector<bool> vis_office = base_vis_office;
+        int score = 0;
+        int cur_turn = yaki_turn_l;
+        rep(i,cur_station_pos.size()){
+            auto [x,y] = cur_station_pos[i];
+            // 増える収入
+            int inc_income = 0;
+            for(int idx : house_on_grid13[x][y]){
+                if(!vis_house[idx]){
+                    vis_house[idx] = true;
+                    if(vis_office[idx]) inc_income += commute_dist[idx];
+                }
+            }
+            for(int idx : office_on_grid13[x][y]){
+                if(!vis_office[idx]){
+                    vis_office[idx] = true;
+                    if(vis_house[idx]) inc_income += commute_dist[idx];
+                }
+            }
+
+            int use_turn = base_dist[x][y]; // baseからの距離
+            rep(j,i){ //今までに追加した駅からの距離
+                use_turn = min(use_turn, abs(x - cur_station_pos[j].first) + abs(y - cur_station_pos[j].second));
+            }
+
+            cur_turn += use_turn;
+            score += inc_income*(1000 - cur_turn) - station_cost - (use_turn - 1)*rail_cost;
+        }
+        return score;
+    }
+
+    bool shift(double start_temp,double end_temp,double time_limit,double start_time,double scoredist,double now_time){
+		long long INF = 1e18;
+		double temp = start_temp + (end_temp - start_temp) * (now_time-start_time) / time_limit;  //線形でstart_tempからend_tempに変化する。
+		double prob = exp(((double)scoredist)/temp); //scoredistが正のときは1負のときは1未満
+		return (prob > (xor128()%INF)/(double)INF);
+	}
+
+    vector<pair<int,int>> yaki(){
+        double start_time = (double)clock()/CLOCKS_PER_SEC;
+        double cur_time = start_time;
+        double end_time = 2.9;
+        int score = calc_score(station_pos);
+        for(int yaki_cnt = 0;true;yaki_cnt++){
+            if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
+            if(cur_time > end_time){
+                cout << "# yaki_cnt = " << yaki_cnt << '\n';
+                break;
+            }
+            int op = xor128()%1;
+            if(op == 0){ // swap
+                if(station_pos.size() <= 1) continue;
+                int i = xor128()%station_pos.size();
+                int j = xor128()%station_pos.size();
+                if(i == j) continue;
+                
+                swap(station_pos[i],station_pos[j]);
+
+                int nscore = calc_score(station_pos);
+
+                if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+                    score = nscore;
+                }else{
+                    swap(station_pos[i],station_pos[j]);
+                }
+            }
+            // else if(op == 1){ // insert
+            //     int x = xor128()%n;
+            //     int y = xor128()%n;
+            //     int i = xor128()%(station_pos.size() + 1);
+
+            //     if(is_station[x][y]) continue;
+                
+            //     station_pos.insert(station_pos.begin() + i,{x,y});
+
+            //     int nscore = calc_score(station_pos);
+
+            //     if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+            //         is_station[x][y] = true;
+            //         score = nscore;
+            //     }else{
+            //         station_pos.erase(station_pos.begin() + i);
+            //     }
+            // }else if(op == 2){ // delate
+            //     if(station_pos.size() == 0) continue;
+            //     int i = xor128()%station_pos.size();
+
+            //     pair<int,int> del = station_pos[i];
+                
+            //     station_pos.erase(station_pos.begin() + i);
+
+            //     int nscore = calc_score(station_pos);
+
+            //     if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+            //         is_station[del.first][del.second] = false;
+            //         score = nscore;
+            //     }else{
+            //         station_pos.insert(station_pos.begin() + i,del);
+            //     }
+            // }else if(op == 3){ // shift
+            //     if(station_pos.size() == 0) continue;
+            //     int i = xor128()%station_pos.size();
+            //     int dir = xor128()%4;
+
+            //     int nx = station_pos[i].first + dx4[dir];
+            //     int ny = station_pos[i].second + dy4[dir];
+
+            //     if(nx < 0 || n <= nx || ny < 0 || n <= ny || is_station[nx][ny]) continue;
+                
+            //     station_pos[i].first += dx4[dir];
+            //     station_pos[i].second += dy4[dir];
+
+            //     int nscore = calc_score(station_pos);
+
+            //     if(shift(100,0,end_time,start_time,nscore - score,cur_time)){
+            //         is_station[nx - dx4[dir]][ny - dy4[dir]] = false;
+            //         is_station[nx][ny] = true;
+            //         score = nscore;
+            //     }else{
+            //         station_pos[i].first -= dx4[dir];
+            //         station_pos[i].second -= dy4[dir];  
+            //     }
+            // }
+        }
+        vector<pair<int,int>> ret = base_station_pos;
+        rep(i,station_pos.size()) ret.push_back(station_pos[i]);
+        return ret;
+    }
+};
+
 int main(){
     input();
     // vector<pair<int,int>> station_pos= greedy();
@@ -1590,29 +1788,51 @@ int main(){
 
     vector<vector<beam_search::Action>> act_v = beam_search::beam_search(config,sta,node);
 
-    vector<tuple<int,int,int>> mx_score_ans;
-    int mx_score = 0;
 
-    for(vector<beam_search::Action>& act : act_v){
-        if((double)clock()/CLOCKS_PER_SEC > 2.9) break;
+    // vector<tuple<int,int,int>> mx_score_ans;
+    // int mx_score = 0;
+
+    // for(vector<beam_search::Action>& act : act_v){
+    //     if((double)clock()/CLOCKS_PER_SEC > 2.9) break;
         
-        vector<pair<int,int>> station_pos;
-        rep(i,act.size()){
-            if((act[i].x_y_turn_income_fin>>62) & 1) break;
-            station_pos.push_back({(act[i].x_y_turn_income_fin) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>6) & ((1ULL<<6) - 1) });
-            if(act[i].x_y_turn_income_fin>>63){//first_step
-                station_pos.push_back({(act[i].x_y_turn_income_fin>>50) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>56) & ((1ULL<<6) - 1) });
-            }
-        }
-        auto [cur_score, cur_ans] = greedy_rail(station_pos);
-        if(mx_score < cur_score){
-            mx_score = cur_score;
-            mx_score_ans = cur_ans;
+    //     vector<pair<int,int>> station_pos;
+    //     rep(i,act.size()){
+    //         if((act[i].x_y_turn_income_fin>>62) & 1) break;
+    //         station_pos.push_back({(act[i].x_y_turn_income_fin) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>6) & ((1ULL<<6) - 1) });
+    //         if(act[i].x_y_turn_income_fin>>63){//first_step
+    //             station_pos.push_back({(act[i].x_y_turn_income_fin>>50) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>56) & ((1ULL<<6) - 1) });
+    //         }
+    //     }
+    //     auto [cur_score, cur_ans] = greedy_rail(station_pos);
+    //     if(mx_score < cur_score){
+    //         mx_score = cur_score;
+    //         mx_score_ans = cur_ans;
+    //     }
+    // }
+
+    vector<pair<int,int>> station_pos;
+    vector<beam_search::Action>& act = act_v[0];
+    rep(i,act.size()){
+        if((act[i].x_y_turn_income_fin>>62) & 1) break;
+        station_pos.push_back({(act[i].x_y_turn_income_fin) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>6) & ((1ULL<<6) - 1) });
+        if(act[i].x_y_turn_income_fin>>63){//first_step
+            station_pos.push_back({(act[i].x_y_turn_income_fin>>50) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>56) & ((1ULL<<6) - 1) });
         }
     }
+
+    pair<need_yaki,vector<tuple<int,int,int>> > yaki_init = greedy_rail(station_pos);
+
+    if(yaki_init.first.yaki_l != -1 && yaki_init.first.yaki_l != station_pos.size()){
+        status st(station_pos, yaki_init.first.yaki_l, yaki_init.first.yaki_turn_l, yaki_init.first.base_cur_grid);
+        cout << "# start_size = " << station_pos.size() << '\n';
+        station_pos = st.yaki();
+        cout << "# end_size = " << station_pos.size() << '\n';
+
+    }
+
+    pair<need_yaki,vector<tuple<int,int,int>> > ans = greedy_rail(station_pos);
     
-    
-    for(auto [out1, out2, out3] : mx_score_ans){
+    for(auto [out1, out2, out3] : ans.second){
         if(out1 != -1) cout << out1 << ' ' << out2 << ' ' << out3 << '\n';
         else cout << -1 << '\n';
     }
