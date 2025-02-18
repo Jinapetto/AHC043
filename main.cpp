@@ -532,7 +532,7 @@ class State {
                 vector<tuple<Action,Hash,int>> cand = first_step();
                 for(auto [act,hash,connect_cnt] : cand){
                     Evaluator n_eva;
-                    n_eva.score = (cur_money + act.money) + (cur_income + ((act.x_y_turn_income_fin>>24) & ((1ULL<<26) - 1)))*(t - (cur_turn + ((act.x_y_turn_income_fin>>12) & ((1ULL<<12) - 1)))) + connect_cnt*connect_cnt_w;
+                    n_eva.score = (cur_money + act.money) + (cur_income + connect_cnt*connect_cnt_w + ((act.x_y_turn_income_fin>>24) & ((1ULL<<26) - 1)))*(t - (cur_turn + ((act.x_y_turn_income_fin>>12) & ((1ULL<<12) - 1))));
                     selector.push(act,n_eva,hash,parent,false);
                 }
                 return;
@@ -564,7 +564,7 @@ class State {
                 n_act.x_y_turn_income_fin = ull(x) | (ull(y)<<6) | (ull(inc_turn)<<12) | (ull(inc_income)<<24);
                 
                 Evaluator n_eva;
-                n_eva.score = (cur_money + inc_money) + (cur_income + inc_income)*(t - (cur_turn + inc_turn)) + n_connect_cnt*connect_cnt_w;
+                n_eva.score = (cur_money + inc_money) + (cur_income + inc_income + n_connect_cnt*connect_cnt_w)*(t - (cur_turn + inc_turn));
                 
                 selector.push(n_act,n_eva,n_hash,parent,false);
             }
@@ -941,7 +941,7 @@ void input(){
     rep(i,m) z_hash_office[i] = xor128()%(int)1e9;
 
     // parameter
-    connect_cnt_w = 200000/m;
+    connect_cnt_w = 400/m;
 }
 
 // // 操作をパスする

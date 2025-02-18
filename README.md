@@ -252,3 +252,11 @@ https://atcoder.jp/contests/ahc043/submissions/62885763
 Average Score          : 3,811,381.71
 
 Average Score (log10)  : 6.27080
+
+つながっている頂点の評価をターン数が少ないほど評価した
+
+https://atcoder.jp/contests/ahc043/submissions/62886935
+
+Average Score          : 3,819,295.94
+
+Average Score (log10)  : 6.27426
