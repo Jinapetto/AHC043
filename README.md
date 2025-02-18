@@ -242,6 +242,9 @@ Average Score (log10)  : 6.26950
 
 ビーム幅をちゃんと考えた
 
+![image](https://github.com/user-attachments/assets/d51ac190-4c5c-4ffd-981e-c990150cee22)
+
+
 ビームサーチの多終点を再開したが、ほとんど焼きなますため意味なし
 
 https://atcoder.jp/contests/ahc043/submissions/62885763
