@@ -44,7 +44,7 @@ vector<int> z_hash_office;
 // parameter
 const int yaki_start_income = 1000;
 const int yaki_start_money = 6000; // 両方満たしたときに焼きなます
-const int mx_yaki_sz = 1;
+const int mx_yaki_sz = 4;
 
 //parameter inputで計算
 int connect_cnt_w;
@@ -1610,7 +1610,7 @@ struct status{
     int score;
     int turn_over_r;
 
-    double start_temp = 100;
+    double start_temp = 500;
     double end_temp = 0;
 
     status(vector<pair<int,int>>& _station_pos, int _yaki_l, int _yaki_turn_l, vector<vector<int>>& cur_grid) : yaki_l(_yaki_l), yaki_turn_l(_yaki_turn_l){
@@ -1700,7 +1700,7 @@ struct status{
 	}
 
     friend bool operator<(const status& a, const status& b){
-        return a.score < b.score;
+        return a.score > b.score;
     }
 
     // vector<pair<int,int>> yaki(){
@@ -1864,14 +1864,21 @@ int main(){
 
             // status_v = {status_v.back()};
 
-            for(int yaki_cnt = 0;true;yaki_cnt++){
-                if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
-                if(cur_time > end_time){
-                    cout << "# yaki_cnt = " << yaki_cnt << '\n';
-                    break;
-                }
+            int do_yaki_r = status_v.size(); // 焼きなましを行うidxのr 多点焼きなましのために導入
 
-                int idx = xor128()%status_v.size(); // 今回焼きなますidx
+            for(int yaki_cnt = 0;true;yaki_cnt++){
+                if(yaki_cnt%10 == 0){
+                    cur_time = (double)clock()/CLOCKS_PER_SEC;
+                    if(cur_time > start_time + (end_time - start_time)/2){ // 1/4が経過した時
+                        sort(ALL(status_v));
+                        do_yaki_r = 1;
+                    }
+                    if(cur_time > end_time){
+                        cout << "# yaki_cnt = " << yaki_cnt << '\n';
+                        break;
+                    }
+                }
+                int idx = xor128()%do_yaki_r; // 今回焼きなますidx
                 int op = xor128()%4;
                 if(op == 0){ // swap
                     if(status_v[idx].station_pos.size() <= 1) continue;
