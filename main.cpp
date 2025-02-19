@@ -1342,22 +1342,50 @@ pair<int,int> construct_yorimichi(int sx,int sy,int tx,int ty, array<array<int,5
     }
 
     // 寄り道できるところがない
-    // 矢印の列挙
+
+
+    // pathのoffice_on_grid13 + house_on_grid13が最大となるようにdpする
+
+    array<array<int,50>,50> dp;
+    rep(i,n)rep(j,n) dp[i][j] = (int)-1e9;
+    array<array<pair<int,int>,50>,50> prev;
+    rep(i,n)rep(j,n) prev[i][j] = {-1,-1};
+
+    assert(que.empty()); //再利用
+    que.push({tx,ty});
+    dp[tx][ty] = office_on_grid13[tx][ty].size() + house_on_grid13[tx][ty].size();
+
+    while(!que.empty()){
+        auto [x, y] = que.front();
+        que.pop();
+        rep(i,4){
+            int nx = x + dx4[i];
+            int ny = y + dy4[i];
+            if(0 <= nx && nx < n && 0 <= ny && ny < n && dist[nx][ny] + 1 == dist[x][y]){
+                if(dp[nx][ny] == (int)-1e9) que.push({nx,ny});
+                if(dp[nx][ny] < dp[x][y] + (int)house_on_grid13[nx][ny].size() + (int)office_on_grid13[nx][ny].size()){
+                    dp[nx][ny] = dp[x][y] + (int)house_on_grid13[nx][ny].size() + (int)office_on_grid13[nx][ny].size();
+                    prev[nx][ny] = {x,y};
+                }
+            }
+        }
+    }
+
+    // DPの復元
     vector<int> dir;
     vector<pair<int,int>> pos;
-    int x = tx,y = ty;
-    while(!(x == sx && y == sy)){
-        vector<int> idx = {0,1,2,3};
-        shuffle(idx.begin(),idx.end(),gen);
-        
+
+    int x = sx;
+    int y = sy;
+    while(!(x == tx && y == ty)){
         rep(i,4){
-            int nx = x + dx4[idx[i]];
-            int ny = y + dy4[idx[i]];
-            if(0 <= nx && nx < n && 0 <= ny && ny < n && dist[nx][ny] + 1 == dist[x][y]){
-                dir.push_back(idx[i]);
-                pos.push_back({nx,ny});
+            int nx = x + dx4[i];
+            int ny = y + dy4[i];
+            if(prev[x][y] == make_pair(nx,ny)){
                 x = nx;
                 y = ny;
+                dir.push_back(i);
+                pos.push_back({nx,ny});
                 break;
             }
             assert(i != 3);
@@ -1366,7 +1394,6 @@ pair<int,int> construct_yorimichi(int sx,int sy,int tx,int ty, array<array<int,5
 
     // 矢印 -> 答え
     // d : v > ^ < 
-    int pre_ans_sz = ans.size();
     for(int i = 0;i < (int)dir.size() - 1;i++){
         if(cur_grid[pos[i].first][pos[i].second] == 0) continue;
         assert(cur_grid[pos[i].first][pos[i].second] == -1);
@@ -1392,7 +1419,7 @@ pair<int,int> construct_yorimichi(int sx,int sy,int tx,int ty, array<array<int,5
         if((dir[i] == 2 && dir[i + 1] == 1) || (dir[i] == 3 && dir[i + 1] == 0)) ans.push_back({6,pos[i].first,pos[i].second});
         cur_grid[pos[i].first][pos[i].second] = get<0>(ans.back());
     }
-    return {(dir.back() + 2)%4, dir[0]};
+    return {dir[0], (dir.back() + 2)%4};
 }
 
 void make_station_rail(int x,int y,int& cur_income,int& cur_money,vector<tuple<int,int,int>>& ans,array<bool,1600>& vis_office, array<bool,1600>& vis_house, array<array<int,50>,50>& cur_grid){
@@ -1461,6 +1488,7 @@ pair<need_yaki,vector<tuple<int,int,int>>> greedy_rail(vector<pair<int,int>> sta
     int mx_score = 0;
     // 答え
     vector<tuple<int,int,int>> ans;
+    ans.reserve(t);
     //現在の盤面
     array<array<int,50>,50> cur_grid;
     rep(i,n)rep(j,n) cur_grid[i][j] = -1;

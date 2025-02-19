@@ -359,3 +359,11 @@ https://atcoder.jp/contests/ahc043/submissions/62925592
 Average Score          : 4,413,540.67
 
 Average Score (log10)  : 6.31111
+
+線路を引くときに、たくさんの家やオフィスを通るようにDP
+
+https://atcoder.jp/contests/ahc043/submissions/62927411
+
+Average Score          : 4,431,319.46
+
+Average Score (log10)  : 6.31269
