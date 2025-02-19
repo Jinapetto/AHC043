@@ -311,3 +311,24 @@ https://atcoder.jp/contests/ahc043/submissions/62894971
 Average Score          : 4,227,675.60
 
 Average Score (log10)  : 6.29917
+
+焼きなましの差分更新実装案
+- station_pos にidxを振る
+- それぞれのstation_posに対してターンを求める
+- 各家、オフィスについてカバーされるようなstation_posのidxをsetで管理する。setはstation_posのターンでソートしておく
+- また各station_pos が最初にカバーするような総和を持つ
+- 各遷移において、今まで通りO(|station_pos|) でターンを求める
+
+明日の自分がんばってくれー
+
+## 02/19
+差分更新を実装したが効果なし、つらい
+
+多点スタート焼きなましにしているが、一点にしても 0.2%ぐらいスコアが落ちた。なぜ？
+
+焼きなましの評価関数ないで既存の線路の上に駅を設置するとき、距離がINFとなっているバグを修正
+
+
+Average Score          : 4,403,464.82
+
+Average Score (log10)  : 6.31103

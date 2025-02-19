@@ -44,6 +44,7 @@ vector<int> z_hash_office;
 // parameter
 const int yaki_start_income = 1000;
 const int yaki_start_money = 6000; // 両方満たしたときに焼きなます
+const int mx_yaki_sz = 1;
 
 //parameter inputで計算
 int connect_cnt_w;
@@ -1606,6 +1607,9 @@ struct status{
     vector<bool> base_vis_house;
     vector<vector<bool>> is_station;
 
+    int score;
+    int turn_over_r;
+
     double start_temp = 100;
     double end_temp = 0;
 
@@ -1646,6 +1650,10 @@ struct status{
                 }
             }
         }
+
+        pair<int,int> ret = calc_score(station_pos);
+        score = ret.first;
+        turn_over_r = ret.second;
     }
 
     // {score, turn超過したidx}
@@ -1672,7 +1680,8 @@ struct status{
             }
 
             int use_turn = base_dist[x][y]; // baseからの距離
-            rep(j,i){ //今までに追加した駅からの距離
+            if(use_turn == (int)1e9) use_turn = 1;
+            if(use_turn != 1) rep(j,i){ //今までに追加した駅からの距離
                 use_turn = min(use_turn, abs(x - cur_station_pos[j].first) + abs(y - cur_station_pos[j].second));
             }
 
@@ -1690,101 +1699,105 @@ struct status{
 		return (prob > (xor128()%INF)/(double)INF);
 	}
 
-    vector<pair<int,int>> yaki(){
-        double start_time = (double)clock()/CLOCKS_PER_SEC;
-        double cur_time = start_time;
-        double end_time = 2.9;
-        pair<int,int> score = calc_score(station_pos);
-        
-        for(int yaki_cnt = 0;true;yaki_cnt++){
-            if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
-            if(cur_time > end_time){
-                cout << "# yaki_cnt = " << yaki_cnt << '\n';
-                break;
-            }
-            int op = xor128()%1;
-            if(op == 0){ // swap
-                if(station_pos.size() <= 1) continue;
-                int i = xor128()%station_pos.size();
-                int j = xor128()%station_pos.size();
-                if(i == j) continue;
-                
-                swap(station_pos[i],station_pos[j]);
-
-                pair<int,int> nscore = calc_score(station_pos);
-
-                if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
-                    score = nscore;
-                }else{
-                    swap(station_pos[i],station_pos[j]);
-                }
-            }
-            else if(op == 1){ // insert
-                if(score.second != station_pos.size()) continue; // ターン超過しているときは、挿入しない
-                int x = xor128()%n;
-                int y = xor128()%n;
-                int i = xor128()%(station_pos.size() + 1);
-
-                if(is_station[x][y]) continue;
-                
-                station_pos.insert(station_pos.begin() + i,{x,y});
-
-                pair<int,int> nscore = calc_score(station_pos);
-
-                if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
-                    is_station[x][y] = true;
-                    score = nscore;
-                }else{
-                    station_pos.erase(station_pos.begin() + i);
-                }
-            }else if(op == 2){ // delate
-                if(station_pos.size() == 0) continue;
-                if(score.second == 0) continue;
-                int i = xor128()%(score.second); //ターン超過していない、評価されている部分を削除する
-
-                pair<int,int> del = station_pos[i];
-                
-                station_pos.erase(station_pos.begin() + i);
-
-                pair<int,int> nscore = calc_score(station_pos);
-
-                if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
-                    is_station[del.first][del.second] = false;
-                    score = nscore;
-                }else{
-                    station_pos.insert(station_pos.begin() + i,del);
-                }
-            }else if(op == 3){ // shift
-                if(station_pos.size() == 0) continue;
-                if(score.second == 0) continue;
-                int i = xor128()%(score.second);//ターン超過していない、評価されている部分を動かす
-                int dir = xor128()%12;
-                dir++; // 最初の{0,0} はいらない
-
-                int nx = station_pos[i].first + dx13[dir];
-                int ny = station_pos[i].second + dy13[dir];
-
-                if(nx < 0 || n <= nx || ny < 0 || n <= ny || is_station[nx][ny]) continue;
-                
-                station_pos[i].first += dx13[dir];
-                station_pos[i].second += dy13[dir];
-
-                pair<int,int> nscore = calc_score(station_pos);
-
-                if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
-                    is_station[nx - dx13[dir]][ny - dy13[dir]] = false;
-                    is_station[nx][ny] = true;
-                    score = nscore;
-                }else{
-                    station_pos[i].first -= dx13[dir];
-                    station_pos[i].second -= dy13[dir];  
-                }
-            }
-        }
-        vector<pair<int,int>> ret = base_station_pos;
-        rep(i,station_pos.size()) ret.push_back(station_pos[i]);
-        return ret;
+    friend bool operator<(const status& a, const status& b){
+        return a.score < b.score;
     }
+
+    // vector<pair<int,int>> yaki(){
+    //     double start_time = (double)clock()/CLOCKS_PER_SEC;
+    //     double cur_time = start_time;
+    //     double end_time = 2.9;
+    //     pair<int,int> score = calc_score(station_pos);
+        
+    //     for(int yaki_cnt = 0;true;yaki_cnt++){
+    //         if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
+    //         if(cur_time > end_time){
+    //             cout << "# yaki_cnt = " << yaki_cnt << '\n';
+    //             break;
+    //         }
+    //         int op = xor128()%4;
+    //         if(op == 0){ // swap
+    //             if(station_pos.size() <= 1) continue;
+    //             int i = xor128()%station_pos.size();
+    //             int j = xor128()%station_pos.size();
+    //             if(i == j) continue;
+                
+    //             swap(station_pos[i],station_pos[j]);
+
+    //             pair<int,int> nscore = calc_score(station_pos);
+
+    //             if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
+    //                 score = nscore;
+    //             }else{
+    //                 swap(station_pos[i],station_pos[j]);
+    //             }
+    //         }
+    //         else if(op == 1){ // insert
+    //             if(score.second != station_pos.size()) continue; // ターン超過しているときは、挿入しない
+    //             int x = xor128()%n;
+    //             int y = xor128()%n;
+    //             int i = xor128()%(station_pos.size() + 1);
+
+    //             if(is_station[x][y]) continue;
+                
+    //             station_pos.insert(station_pos.begin() + i,{x,y});
+
+    //             pair<int,int> nscore = calc_score(station_pos);
+
+    //             if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
+    //                 is_station[x][y] = true;
+    //                 score = nscore;
+    //             }else{
+    //                 station_pos.erase(station_pos.begin() + i);
+    //             }
+    //         }else if(op == 2){ // delate
+    //             if(station_pos.size() == 0) continue;
+    //             if(score.second == 0) continue;
+    //             int i = xor128()%(score.second); //ターン超過していない、評価されている部分を削除する
+
+    //             pair<int,int> del = station_pos[i];
+                
+    //             station_pos.erase(station_pos.begin() + i);
+
+    //             pair<int,int> nscore = calc_score(station_pos);
+
+    //             if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
+    //                 is_station[del.first][del.second] = false;
+    //                 score = nscore;
+    //             }else{
+    //                 station_pos.insert(station_pos.begin() + i,del);
+    //             }
+    //         }else if(op == 3){ // shift
+    //             if(station_pos.size() == 0) continue;
+    //             if(score.second == 0) continue;
+    //             int i = xor128()%(score.second);//ターン超過していない、評価されている部分を動かす
+    //             int dir = xor128()%12;
+    //             dir++; // 最初の{0,0} はいらない
+
+    //             int nx = station_pos[i].first + dx13[dir];
+    //             int ny = station_pos[i].second + dy13[dir];
+
+    //             if(nx < 0 || n <= nx || ny < 0 || n <= ny || is_station[nx][ny]) continue;
+                
+    //             station_pos[i].first += dx13[dir];
+    //             station_pos[i].second += dy13[dir];
+
+    //             pair<int,int> nscore = calc_score(station_pos);
+
+    //             if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
+    //                 is_station[nx - dx13[dir]][ny - dy13[dir]] = false;
+    //                 is_station[nx][ny] = true;
+    //                 score = nscore;
+    //             }else{
+    //                 station_pos[i].first -= dx13[dir];
+    //                 station_pos[i].second -= dy13[dir];  
+    //             }
+    //         }
+    //     }
+    //     vector<pair<int,int>> ret = base_station_pos;
+    //     rep(i,station_pos.size()) ret.push_back(station_pos[i]);
+    //     return ret;
+    // }
 };
 
 int main(){
@@ -1807,62 +1820,168 @@ int main(){
     config.hash_map_capacity = 1e4;
     config.nodes_capacity = 50*50*config.beam_width*10;
 
-    // auto [sta,init_pos] = first_step();
-
     beam_search::State sta;
     beam_search::Hash hash = 0;
-    // rep(i,m){
-    //     if(sta.vis_house[i]) hash ^= z_hash_house[i];
-    //     if(sta.vis_office[i]) hash ^= z_hash_office[i];
-    // }
+
     beam_search::Node node(beam_search::Action(), beam_search::Evaluator(),hash);
 
     vector<vector<beam_search::Action>> act_v = beam_search::beam_search(config,sta,node);
 
 
-    // vector<tuple<int,int,int>> mx_score_ans;
-    // int mx_score = 0;
+    pair<need_yaki,vector<tuple<int,int,int>> > ans;
 
-    // for(vector<beam_search::Action>& act : act_v){
-    //     if((double)clock()/CLOCKS_PER_SEC > 2.9) break;
-        
-    //     vector<pair<int,int>> station_pos;
-    //     rep(i,act.size()){
-    //         if((act[i].x_y_turn_income_fin>>62) & 1) break;
-    //         station_pos.push_back({(act[i].x_y_turn_income_fin) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>6) & ((1ULL<<6) - 1) });
-    //         if(act[i].x_y_turn_income_fin>>63){//first_step
-    //             station_pos.push_back({(act[i].x_y_turn_income_fin>>50) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>56) & ((1ULL<<6) - 1) });
-    //         }
-    //     }
-    //     auto [cur_score, cur_ans] = greedy_rail(station_pos);
-    //     if(mx_score < cur_score){
-    //         mx_score = cur_score;
-    //         mx_score_ans = cur_ans;
-    //     }
-    // }
+    bool is_yaki = false;
 
-    vector<pair<int,int>> station_pos;
-    vector<beam_search::Action>& act = act_v[0];
-    rep(i,act.size()){
-        if((act[i].x_y_turn_income_fin>>62) & 1) break;
-        station_pos.push_back({(act[i].x_y_turn_income_fin) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>6) & ((1ULL<<6) - 1) });
-        if(act[i].x_y_turn_income_fin>>63){//first_step
-            station_pos.push_back({(act[i].x_y_turn_income_fin>>50) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>56) & ((1ULL<<6) - 1) });
+    // 焼きなます場合
+    {
+        int yaki_sz = min(mx_yaki_sz,(int)act_v.size()); //何個で焼きなましを行うか
+
+        vector<status> status_v;
+        rep(i,yaki_sz){ //焼きなましの初期化
+            vector<pair<int,int>> station_pos;
+            vector<beam_search::Action>& act = act_v[i];
+            rep(i,act.size()){
+                if((act[i].x_y_turn_income_fin>>62) & 1) break;
+                station_pos.push_back({(act[i].x_y_turn_income_fin) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>6) & ((1ULL<<6) - 1) });
+                if(act[i].x_y_turn_income_fin>>63){//first_step
+                    station_pos.push_back({(act[i].x_y_turn_income_fin>>50) & ((1ULL<<6) - 1), (act[i].x_y_turn_income_fin>>56) & ((1ULL<<6) - 1) });
+                }
+            }
+            auto ret = greedy_rail(station_pos);
+            if(ret.first.yaki_l != -1 && ret.first.yaki_l != station_pos.size()) status_v.push_back(status(station_pos,ret.first.yaki_l,ret.first.yaki_turn_l,ret.first.base_cur_grid));
+        }
+
+        if(status_v.size() == 0){
+            is_yaki = false; //焼けない
+        }else{
+            double start_time = (double)clock()/CLOCKS_PER_SEC;
+            double cur_time = start_time;
+            double end_time = 2.9;
+
+            rep(i,status_v.size()){
+                cout << "# " << status_v[i].score << endl;
+            }
+
+            // status_v = {status_v.back()};
+
+            for(int yaki_cnt = 0;true;yaki_cnt++){
+                if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
+                if(cur_time > end_time){
+                    cout << "# yaki_cnt = " << yaki_cnt << '\n';
+                    break;
+                }
+
+                int idx = xor128()%status_v.size(); // 今回焼きなますidx
+                int op = xor128()%4;
+                if(op == 0){ // swap
+                    if(status_v[idx].station_pos.size() <= 1) continue;
+                    int i = xor128()%status_v[idx].station_pos.size();
+                    int j = xor128()%status_v[idx].station_pos.size();
+                    if(i == j) continue;
+                    
+                    swap(status_v[idx].station_pos[i],status_v[idx].station_pos[j]);
+
+                    auto [nscore, n_turn_over_r] = status_v[idx].calc_score(status_v[idx].station_pos);
+
+                    if(status_v[idx].shift(status_v[idx].start_temp,status_v[idx].end_temp,end_time,start_time,nscore - status_v[idx].score,cur_time)){
+                        status_v[idx].score = nscore;
+                        status_v[idx].turn_over_r = n_turn_over_r;
+                    }else{
+                        swap(status_v[idx].station_pos[i],status_v[idx].station_pos[j]);
+                    }
+                }
+                else if(op == 1){ // insert
+                    if(status_v[idx].turn_over_r != status_v[idx].station_pos.size()) continue; // ターン超過しているときは、挿入しない
+                    int x = xor128()%n;
+                    int y = xor128()%n;
+                    int i = xor128()%(status_v[idx].station_pos.size() + 1);
+
+                    if(status_v[idx].is_station[x][y]) continue;
+                    
+                    status_v[idx].station_pos.insert(status_v[idx].station_pos.begin() + i,{x,y});
+
+                    auto [nscore, n_turn_over_r] = status_v[idx].calc_score(status_v[idx].station_pos);
+
+                    if(status_v[idx].shift(status_v[idx].start_temp,status_v[idx].end_temp,end_time,start_time,nscore - status_v[idx].score,cur_time)){
+                        status_v[idx].is_station[x][y] = true;
+                        status_v[idx].score = nscore;
+                        status_v[idx].turn_over_r = n_turn_over_r;
+                    }else{
+                        status_v[idx].station_pos.erase(status_v[idx].station_pos.begin() + i);
+                    }
+                }else if(op == 2){ // delate
+                    if(status_v[idx].station_pos.size() == 0) continue;
+                    if(status_v[idx].turn_over_r == 0) continue;
+                    int i = xor128()%(status_v[idx].turn_over_r); //ターン超過していない、評価されている部分を削除する
+
+                    pair<int,int> del = status_v[idx].station_pos[i];
+                    
+                    status_v[idx].station_pos.erase(status_v[idx].station_pos.begin() + i);
+
+                    auto [nscore, n_turn_over_r] = status_v[idx].calc_score(status_v[idx].station_pos);
+
+                    if(status_v[idx].shift(status_v[idx].start_temp,status_v[idx].end_temp,end_time,start_time,nscore - status_v[idx].score,cur_time)){
+                        status_v[idx].is_station[del.first][del.second] = false;
+                        status_v[idx].score = nscore;
+                        status_v[idx].turn_over_r = n_turn_over_r;
+                    }else{
+                        status_v[idx].station_pos.insert(status_v[idx].station_pos.begin() + i,del);
+                    }
+                }else if(op == 3){ // shift
+                    if(status_v[idx].station_pos.size() == 0) continue;
+                    if(status_v[idx].turn_over_r == 0) continue;
+                    int i = xor128()%(status_v[idx].turn_over_r);//ターン超過していない、評価されている部分を動かす
+                    int dir = xor128()%12;
+                    dir++; // 最初の{0,0} はいらない
+
+                    int nx = status_v[idx].station_pos[i].first + dx13[dir];
+                    int ny = status_v[idx].station_pos[i].second + dy13[dir];
+
+                    if(nx < 0 || n <= nx || ny < 0 || n <= ny || status_v[idx].is_station[nx][ny]) continue;
+                    
+                    status_v[idx].station_pos[i].first += dx13[dir];
+                    status_v[idx].station_pos[i].second += dy13[dir];
+
+                    auto [nscore, n_turn_over_r] = status_v[idx].calc_score(status_v[idx].station_pos);
+
+                    if(status_v[idx].shift(status_v[idx].start_temp,status_v[idx].end_temp,end_time,start_time,nscore - status_v[idx].score,cur_time)){
+                        status_v[idx].is_station[nx - dx13[dir]][ny - dy13[dir]] = false;
+                        status_v[idx].is_station[nx][ny] = true;
+                        status_v[idx].score = nscore;
+                        status_v[idx].turn_over_r = n_turn_over_r;
+                    }else{
+                        status_v[idx].station_pos[i].first -= dx13[dir];
+                        status_v[idx].station_pos[i].second -= dy13[dir];  
+                    }
+                }
+            }
+            vector<vector<pair<int,int>>> station_pos_v(status_v.size());
+            rep(i,status_v.size()){
+                for(pair<int,int> p : status_v[i].base_station_pos){
+                    station_pos_v[i].push_back(p);
+                }
+                for(pair<int,int> p : status_v[i].station_pos){
+                    station_pos_v[i].push_back(p);
+                }
+            }
+            
+            ans = greedy_rail(station_pos_v[0]);
+            // cout << "# " << ans.first.score << endl;
+            for(int i = 1;i < status_v.size();i++){
+                auto cand = greedy_rail(station_pos_v[i]);
+                // cout << "# " << cand.first.score << endl;
+                if(cand.first.score > ans.first.score){
+                    ans = cand;
+                }
+            }
         }
     }
 
-    pair<need_yaki,vector<tuple<int,int,int>> > ans = greedy_rail(station_pos);
 
-    // 焼きなます場合
-    if(ans.first.yaki_l != -1 && ans.first.yaki_l != station_pos.size()){
-        status st(station_pos, ans.first.yaki_l, ans.first.yaki_turn_l, ans.first.base_cur_grid);
-        cout << "# start_size = " << station_pos.size() << '\n';
-        station_pos = st.yaki();
-        cout << "# end_size = " << station_pos.size() << '\n';
-        ans = greedy_rail(station_pos);
-    }else{ // 焼かない場合
+    if(is_yaki == false){ // 焼かない場合
         // ほとんどそんざいしないらしい
-        for(int k = 1;k < act_v.size();k++){
+        ans.first.score = 0;
+        for(int k = 0;k < act_v.size();k++){
             if((double)clock()/CLOCKS_PER_SEC > 2.9) break;
             vector<beam_search::Action>& act = act_v[k];
             vector<pair<int,int>> station_pos;
