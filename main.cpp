@@ -41,17 +41,78 @@ array<array<int,50>,50> z_hash_grid;
 array<int,1600> z_hash_house;
 array<int,1600> z_hash_office;
 
-// parameter
-const int yaki_start_income = 1000;
-const int yaki_start_money = 6000; // 両方満たしたときに焼きなます
+////////// parameter //////////////////
+int yaki_start_income = 1000;
+int yaki_start_money = 6000; // 両方満たしたときに焼きなます
 
-const array<int,4> shift_rate = {1,2,1,1};
+array<int,4> shift_rate = {1,2,1,1};
+
+int beam_width_para = 300000;
+// beam_width = beam_width_para/predict_turn/sqrt(m);
+
+int start_temp_para = 20000;
+// start_temp = score.first/start_temp_para;
+
+int connect_cnt_w_para = 400;
+// connect_cnt_w = connect_cnt_w_para/m;
+
+////////// parameter //////////////////
 
 //parameter inputで計算
 int connect_cnt_w;
 
 // ビーム幅
 int beam_width = 0;
+
+void input_env(){
+	char* c;
+
+	c = getenv("yaki_start_income");
+	if(c != nullptr){
+		string s = c;
+		yaki_start_income = stoi(s);
+	}
+	c = getenv("yaki_start_money");
+	if(c != nullptr){
+		string s = c;
+		yaki_start_money = stoi(s);
+	}
+	c = getenv("shift_rate_0");
+	if(c != nullptr){
+		string s = c;
+		shift_rate[0] = stoi(s);
+	}
+    c = getenv("shift_rate_1");
+	if(c != nullptr){
+		string s = c;
+		shift_rate[1] = stoi(s);
+	}
+    c = getenv("shift_rate_2");
+	if(c != nullptr){
+		string s = c;
+		shift_rate[2] = stoi(s);
+	}
+    c = getenv("shift_rate_3");
+	if(c != nullptr){
+		string s = c;
+		shift_rate[3] = stoi(s);
+	}
+	c = getenv("beam_width_para");
+	if(c != nullptr){
+		string s = c;
+		beam_width_para = stoi(s);
+	}
+	c = getenv("start_temp_para");
+	if(c != nullptr){
+		string s = c;
+		start_temp_para = stoi(s);
+	}
+    c = getenv("connect_cnt_w_para");
+	if(c != nullptr){
+		string s = c;
+		connect_cnt_w_para = stoi(s);
+	}
+}
 
 unsigned long xor128(void){
 	static unsigned long x = 123456789,y = 362436069,z = 541288629,w = 88675123;
@@ -944,7 +1005,8 @@ void input(){
     rep(i,m) z_hash_office[i] = xor128()%(int)1e9;
 
     // parameter
-    connect_cnt_w = 400/m;
+    // connect_cnt_w = 400/m;
+    connect_cnt_w = connect_cnt_w_para/m;
 }
 
 // // 操作をパスする
@@ -1718,7 +1780,8 @@ struct status{
         double cur_time = start_time;
         double end_time = 2.9;
         pair<int,int> score = calc_score(station_pos);
-        start_temp = score.first/20000;
+        // start_temp = score.first/20000;
+        start_temp = score.first/start_temp_para;
         
         for(int yaki_cnt = 0;true;yaki_cnt++){
             if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
@@ -1819,6 +1882,7 @@ struct status{
 
 int main(){
     input();
+    input_env();
     // vector<pair<int,int>> station_pos= greedy();
 
     // 予想される手数
@@ -1832,7 +1896,8 @@ int main(){
 
     // ビームサーチの設定
     beam_search::Config config;
-    config.beam_width = beam_width = 300000/predict_turn/sqrt(m);
+    // config.beam_width = beam_width = 300000/predict_turn/sqrt(m);
+    config.beam_width = beam_width = beam_width_para/predict_turn/sqrt(m);
     config.max_turn = 1e8; // 途中で止める実装にした
     config.hash_map_capacity = 1e4;
     config.nodes_capacity = 50*50*config.beam_width*10;
