@@ -1702,7 +1702,7 @@ struct status{
                 cout << "# yaki_cnt = " << yaki_cnt << '\n';
                 break;
             }
-            int op = xor128()%10;
+            int op = xor128()%1;
             if(op == 0){ // swap
                 if(station_pos.size() <= 1) continue;
                 int i = xor128()%station_pos.size();
