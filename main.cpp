@@ -45,6 +45,8 @@ array<int,1600> z_hash_office;
 const int yaki_start_income = 1000;
 const int yaki_start_money = 6000; // 両方満たしたときに焼きなます
 
+const array<int,4> shift_rate = {1,2,1,1};
+
 //parameter inputで計算
 int connect_cnt_w;
 
@@ -1696,8 +1698,14 @@ struct status{
                 cout << "# yaki_cnt = " << yaki_cnt << '\n';
                 break;
             }
-            int op = xor128()%4;
-            if(op == 0){ // swap
+            array<int,4> choose;
+            choose[0] = shift_rate[0];
+            choose[1] = shift_rate[0] + shift_rate[1];
+            choose[2] = shift_rate[0] + shift_rate[1] + shift_rate[2];
+            choose[3] = shift_rate[0] + shift_rate[1] + shift_rate[2] + shift_rate[3];
+            
+            int op = xor128()%choose[3];
+            if(op < choose[0]){ // swap
                 if(station_pos.size() <= 1) continue;
                 int i = xor128()%station_pos.size();
                 int j = xor128()%station_pos.size();
@@ -1713,7 +1721,7 @@ struct status{
                     swap(station_pos[i],station_pos[j]);
                 }
             }
-            else if(op == 1){ // insert
+            else if(op < choose[1]){ // insert
                 if(score.second != station_pos.size()) continue; // ターン超過しているときは、挿入しない
                 int x = xor128()%n;
                 int y = xor128()%n;
@@ -1731,7 +1739,7 @@ struct status{
                 }else{
                     station_pos.erase(station_pos.begin() + i);
                 }
-            }else if(op == 2){ // delate
+            }else if(op < choose[2]){ // delate
                 if(station_pos.size() == 0) continue;
                 if(score.second == 0) continue;
                 int i = xor128()%(score.second); //ターン超過していない、評価されている部分を削除する
@@ -1748,7 +1756,7 @@ struct status{
                 }else{
                     station_pos.insert(station_pos.begin() + i,del);
                 }
-            }else if(op == 3){ // shift
+            }else if(op < choose[3]){ // shift
                 if(station_pos.size() == 0) continue;
                 if(score.second == 0) continue;
                 int i = xor128()%(score.second);//ターン超過していない、評価されている部分を動かす

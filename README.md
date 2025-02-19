@@ -345,6 +345,17 @@ Average Score (log10)  : 6.31103
 
 焼きなましのスタート温度を初期解のスコアから決めるように
 
+https://atcoder.jp/contests/ahc043/submissions/62923463
+
 Average Score          : 4,421,154.68
 
 Average Score (log10)  : 6.31158
+
+insertの確率を上げた
+
+https://atcoder.jp/contests/ahc043/submissions/62925592
+
+
+Average Score          : 4,413,540.67
+
+Average Score (log10)  : 6.31111
