@@ -340,3 +340,11 @@ Average Score (log10)  : 6.29917
 Average Score          : 4,403,464.82
 
 Average Score (log10)  : 6.31103
+
+すべてのvectorをarrayにした。これは嘘で一部は置き換えれてない
+
+焼きなましのスタート温度を初期解のスコアから決めるように
+
+Average Score          : 4,421,154.68
+
+Average Score (log10)  : 6.31158
