@@ -372,6 +372,8 @@ Average Score (log10)  : 6.31269
 
 array<int,4> shift_rate = {3,5,2,5};
 
+https://atcoder.jp/contests/ahc043/submissions/62942337
+
 Average Score          : 4,444,719.19
 
 Average Score (log10)  : 6.31302
