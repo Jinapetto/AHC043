@@ -377,3 +377,7 @@ https://atcoder.jp/contests/ahc043/submissions/62942337
 Average Score          : 4,444,719.19
 
 Average Score (log10)  : 6.31302
+
+ビームサーチ、最初が重要だから最初の方をビーム幅を広くするとかありかも
+
+焼きなましでbaseの範囲をだんだん多くしてくとか
