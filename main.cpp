@@ -42,15 +42,15 @@ array<int,1600> z_hash_house;
 array<int,1600> z_hash_office;
 
 ////////// parameter //////////////////
-int yaki_start_income = 1000;
-int yaki_start_money = 6000; // 両方満たしたときに焼きなます
+int yaki_start_income = 1518;
+int yaki_start_money = 9860; // 両方満たしたときに焼きなます
 
 array<int,4> shift_rate = {3,5,2,5};
 
-int beam_width_para = 300000;
+int beam_width_para = 213218;
 // beam_width = beam_width_para/predict_turn/sqrt(m);
 
-int start_temp_para = 20000;
+int start_temp_para = 7482;
 // start_temp = score.first/start_temp_para;
 
 int connect_cnt_w_para = 400;
