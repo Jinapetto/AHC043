@@ -1,5 +1,5 @@
 # start_size = 36
-# yaki_cnt = 13397690
+# yaki_cnt = 13466360
 # end_size = 36
 # real_sz = 36
 0 13 26

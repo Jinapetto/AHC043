@@ -45,7 +45,7 @@ array<int,1600> z_hash_office;
 int yaki_start_income = 1000;
 int yaki_start_money = 6000; // 両方満たしたときに焼きなます
 
-array<int,4> shift_rate = {1,2,1,1};
+array<int,4> shift_rate = {3,5,2,5};
 
 int beam_width_para = 300000;
 // beam_width = beam_width_para/predict_turn/sqrt(m);
@@ -77,26 +77,26 @@ void input_env(){
 		string s = c;
 		yaki_start_money = stoi(s);
 	}
-	c = getenv("shift_rate_0");
-	if(c != nullptr){
-		string s = c;
-		shift_rate[0] = stoi(s);
-	}
-    c = getenv("shift_rate_1");
-	if(c != nullptr){
-		string s = c;
-		shift_rate[1] = stoi(s);
-	}
-    c = getenv("shift_rate_2");
-	if(c != nullptr){
-		string s = c;
-		shift_rate[2] = stoi(s);
-	}
-    c = getenv("shift_rate_3");
-	if(c != nullptr){
-		string s = c;
-		shift_rate[3] = stoi(s);
-	}
+	// c = getenv("shift_rate_0");
+	// if(c != nullptr){
+	// 	string s = c;
+	// 	shift_rate[0] = stoi(s);
+	// }
+    // c = getenv("shift_rate_1");
+	// if(c != nullptr){
+	// 	string s = c;
+	// 	shift_rate[1] = stoi(s);
+	// }
+    // c = getenv("shift_rate_2");
+	// if(c != nullptr){
+	// 	string s = c;
+	// 	shift_rate[2] = stoi(s);
+	// }
+    // c = getenv("shift_rate_3");
+	// if(c != nullptr){
+	// 	string s = c;
+	// 	shift_rate[3] = stoi(s);
+	// }
 	c = getenv("beam_width_para");
 	if(c != nullptr){
 		string s = c;
