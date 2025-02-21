@@ -389,3 +389,16 @@ Average Score (log10)  : 6.31822
 ビームサーチ、最初が重要だから最初の方をビーム幅を広くするとかありかも
 
 焼きなましでbaseの範囲をだんだん多くしてくとか
+
+明日の自分へサンドイッチされてるやつはuse_turnを１にするやつやって
+
+## 02/21
+> 明日の自分へサンドイッチされてるやつはuse_turnを１にするやつやって
+
+これの実装
+
+https://atcoder.jp/contests/ahc043/submissions/62956946
+
+Average Score          : 4,420,773.17
+
+Average Score (log10)  : 6.32258

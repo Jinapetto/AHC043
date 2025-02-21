@@ -1679,10 +1679,23 @@ struct status{
         }
     }
 
+    void calc_is_path(int sx, int sy, int tx, int ty, vector<bool>& is_path, int mx_pos){
+        for(int i = mx_pos + 1;i < station_pos.size();i++)if(!is_path[i]){
+            auto [x, y] = station_pos[i];
+            if(min(sx,tx) <= x && x <= max(sx,tx) && min(sy,ty) <= y && y <= max(sy,ty)){
+                is_path[i] = true;
+                calc_is_path(sx,sy,x,y,is_path,i);
+                calc_is_path(x,y,tx,ty,is_path,i);
+                return;
+            }
+        }
+    }
+
     // {score, turn超過したidx}
     pair<int,int> calc_score(vector<pair<int,int>>& cur_station_pos){
         bitset<1600> vis_house;
         bitset<1600> vis_office;
+        vector<bool> is_path(cur_station_pos.size(),false);
         rep(i,m) vis_house[i] = false;
         rep(i,m) vis_office[i] = false;
         int cur_turn = 0;
@@ -1706,9 +1719,18 @@ struct status{
             }
 
             int use_turn = 1e9;
-            if(i == 0) use_turn = 1;
-            rep(j,i){ //今までに追加した駅からの距離
-                use_turn = min(use_turn, abs(x - cur_station_pos[j].first) + abs(y - cur_station_pos[j].second));
+            if(i == 0 || is_path[i]) use_turn = 1;
+            else{
+                int sx,sy;
+                rep(j,i){ //今までに追加した駅からの距離
+                    int dist = abs(x - cur_station_pos[j].first) + abs(y - cur_station_pos[j].second);
+                    if(use_turn > dist){
+                        use_turn = dist;
+                        sx = cur_station_pos[j].first;
+                        sy = cur_station_pos[j].second;
+                    }
+                }
+                calc_is_path(x,y,sx,sy,is_path,i);
             }
 
             int cost = station_cost + (use_turn - 1)*rail_cost;
