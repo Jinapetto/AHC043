@@ -51,17 +51,20 @@ array<int,5> shift_rate = {3,5,2,5,1};
 // swap insert, erase, shift, abjacent_swap, insert_on_rail
 array<int,6> shift_rate2 = {3,5,2,5,1,2};
 
-int beam_width_para = 213218;
+int beam_width_para = 221400;
 // beam_width = beam_width_para/predict_turn/sqrt(m);
 
-int start_temp_para = 7482;
+int start_temp_para = 97749;
 // start_temp = score.first/start_temp_para;
 
 int start_temp_para2 = 4000;
 // start_temp = score.first/start_temp_para2;
 
-int connect_cnt_w_para = 400;
+int connect_cnt_w_para = 364;
 // connect_cnt_w = connect_cnt_w_para/m;
+
+double first_yaki_ratio = 3.9610951352522004;
+// 1/first_yaki_ratio 時間
 
 ////////// parameter //////////////////
 
@@ -73,27 +76,6 @@ int beam_width = 0;
 
 void input_env(){
 	char* c;
-
-	// c = getenv("shift_rate_0");
-	// if(c != nullptr){
-	// 	string s = c;
-	// 	shift_rate[0] = stoi(s);
-	// }
-    // c = getenv("shift_rate_1");
-	// if(c != nullptr){
-	// 	string s = c;
-	// 	shift_rate[1] = stoi(s);
-	// }
-    // c = getenv("shift_rate_2");
-	// if(c != nullptr){
-	// 	string s = c;
-	// 	shift_rate[2] = stoi(s);
-	// }
-    // c = getenv("shift_rate_3");
-	// if(c != nullptr){
-	// 	string s = c;
-	// 	shift_rate[3] = stoi(s);
-	// }
 	c = getenv("beam_width_para");
 	if(c != nullptr){
 		string s = c;
@@ -108,6 +90,11 @@ void input_env(){
 	if(c != nullptr){
 		string s = c;
 		connect_cnt_w_para = stoi(s);
+	}
+    c = getenv("first_yaki_ratio");
+	if(c != nullptr){
+		string s = c;
+		first_yaki_ratio = stod(s);
 	}
 }
 
@@ -1756,7 +1743,7 @@ struct status{
     vector<pair<int,int>> yaki(){
         double start_time = (double)clock()/CLOCKS_PER_SEC;
         double cur_time = start_time;
-        double end_time = start_time + (2.9 - start_time)/3.0;
+        double end_time = start_time + (2.9 - start_time)/first_yaki_ratio;
         pair<int,int> score = calc_score(station_pos);
         // start_temp = score.first/20000;
         start_temp = score.first/start_temp_para;

@@ -444,3 +444,11 @@ https://atcoder.jp/contests/ahc043/submissions/62971522
 Average Score          : 4,592,915.70
 
 Average Score (log10)  : 6.33359
+
+optuna
+
+https://atcoder.jp/contests/ahc043/submissions/62974960
+
+Average Score          : 4,614,408.80
+
+Average Score (log10)  : 6.33393

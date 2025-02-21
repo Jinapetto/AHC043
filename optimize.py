@@ -10,15 +10,14 @@ import optuna
 def generate_params(trial: optuna.trial.Trial) -> dict[str, str]:
     # for more information, see https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html
     params = {
-        "yaki_start_income" : str(trial.suggest_int("yaki_start_income", 500, 5000)),
-        "yaki_start_money" : str(trial.suggest_int("yaki_start_money", 1000, 10000)),
         # "shift_rate_0" : str(trial.suggest_int("shift_rate_0", 1, 5)),
         # "shift_rate_1" : str(trial.suggest_int("shift_rate_1", 1, 5)),
         # "shift_rate_2" : str(trial.suggest_int("shift_rate_2", 1, 5)),
         # "shift_rate_3" : str(trial.suggest_int("shift_rate_3", 1, 5)),
         "beam_width_para" : str(trial.suggest_int("beam_width_para", 50000, 500000)),
         "start_temp_para" : str(trial.suggest_int("start_temp_para", 5000, 100000)),
-        "connect_cnt_w_para" : str(trial.suggest_int("connect_cnt_w_para", 50, 4000)),
+        "connect_cnt_w_para" : str(trial.suggest_int("connect_cnt_w_para", 200, 800)),
+        "first_yaki_ratio" : str(trial.suggest_float("first_yaki_ratio", 0.3, 5)),
     }
 
     return params
