@@ -53,7 +53,7 @@ int beam_width_para = 213218;
 int start_temp_para = 7482;
 // start_temp = score.first/start_temp_para;
 
-int start_temp_para2 = 20000;
+int start_temp_para2 = 4000;
 // start_temp = score.first/start_temp_para2;
 
 int connect_cnt_w_para = 400;
@@ -1754,9 +1754,9 @@ struct status{
         return {cur_money + (t - cur_turn)*cur_income, station_pos.size()};
     }
 
-    bool shift(double start_temp,double end_temp,double time_limit,double start_time,double scoredist,double now_time){
+    bool shift(double start_temp,double end_temp,double end_time,double start_time,double scoredist,double now_time){
 		long long INF = 1e18;
-		double temp = start_temp + (end_temp - start_temp) * (now_time-start_time) / time_limit;  //線形でstart_tempからend_tempに変化する。
+		double temp = start_temp + (end_temp - start_temp) * (now_time-start_time) / (end_time - start_time);  //線形でstart_tempからend_tempに変化する。
 		double prob = exp(((double)scoredist)/temp); //scoredistが正のときは1負のときは1未満
 		return (prob > (xor128()%INF)/(double)INF);
 	}
@@ -1768,6 +1768,12 @@ struct status{
         pair<int,int> score = calc_score(station_pos);
         // start_temp = score.first/20000;
         start_temp = score.first/start_temp_para;
+
+        array<int,4> choose;
+        choose[0] = shift_rate[0];
+        choose[1] = shift_rate[0] + shift_rate[1];
+        choose[2] = shift_rate[0] + shift_rate[1] + shift_rate[2];
+        choose[3] = shift_rate[0] + shift_rate[1] + shift_rate[2] + shift_rate[3];
         
         for(int yaki_cnt = 0;true;yaki_cnt++){
             if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
@@ -1775,11 +1781,6 @@ struct status{
                 cout << "# yaki_cnt = " << yaki_cnt << '\n';
                 break;
             }
-            array<int,4> choose;
-            choose[0] = shift_rate[0];
-            choose[1] = shift_rate[0] + shift_rate[1];
-            choose[2] = shift_rate[0] + shift_rate[1] + shift_rate[2];
-            choose[3] = shift_rate[0] + shift_rate[1] + shift_rate[2] + shift_rate[3];
             
             int op = xor128()%choose[3];
             if(op < choose[0]){ // swap
@@ -1987,9 +1988,9 @@ struct status_inc_base{
         return {money + (t - turn)*income, station_pos.size()};
     }
 
-    bool shift(double start_temp,double end_temp,double time_limit,double start_time,double scoredist,double now_time){
+    bool shift(double start_temp,double end_temp, int mn_pos, int start_sz ,double scoredist){
 		long long INF = 1e18;
-		double temp = start_temp + (end_temp - start_temp) * (now_time-start_time) / time_limit;  //線形でstart_tempからend_tempに変化する。
+		double temp = start_temp + (end_temp - start_temp) * (double)(start_sz - mn_pos) / start_sz;  //線形でstart_tempからend_tempに変化する。
 		double prob = exp(((double)scoredist)/temp); //scoredistが正のときは1負のときは1未満
 		return (prob > (xor128()%INF)/(double)INF);
 	}
@@ -2004,6 +2005,13 @@ struct status_inc_base{
         double end_time = 2.9;
         double pre_inc_time = start_time;
         double n_inc_time = start_time + (end_time - start_time)/station_pos.size();
+        int start_sz = station_pos.size();
+
+        array<int,4> choose;
+        choose[0] = shift_rate[0];
+        choose[1] = shift_rate[0] + shift_rate[1];
+        choose[2] = shift_rate[0] + shift_rate[1] + shift_rate[2];
+        choose[3] = shift_rate[0] + shift_rate[1] + shift_rate[2] + shift_rate[3];
         
         for(int yaki_cnt = 0;true;yaki_cnt++){
             if(station_pos.size() == 0 || score.second == 0) break;
@@ -2017,11 +2025,6 @@ struct status_inc_base{
                     score = calc_score();
                 }
             }
-            array<int,4> choose;
-            choose[0] = shift_rate[0];
-            choose[1] = shift_rate[0] + shift_rate[1];
-            choose[2] = shift_rate[0] + shift_rate[1] + shift_rate[2];
-            choose[3] = shift_rate[0] + shift_rate[1] + shift_rate[2] + shift_rate[3];
             
             int op = xor128()%choose[3];
             if(op < choose[0]){ // swap
@@ -2034,7 +2037,7 @@ struct status_inc_base{
 
                 pair<int,int> nscore = calc_score();
 
-                if(shift(start_temp,end_temp,n_inc_time,pre_inc_time,nscore.first - score.first,cur_time)){
+                if(shift(start_temp, end_temp, min(i,j), start_sz, nscore.first - score.first)){
                     score = nscore;
                 }else{
                     swap(station_pos[i],station_pos[j]);
@@ -2052,7 +2055,7 @@ struct status_inc_base{
 
                 pair<int,int> nscore = calc_score();
 
-                if(shift(start_temp,end_temp,n_inc_time,pre_inc_time,nscore.first - score.first,cur_time)){
+                if(shift(start_temp, end_temp, i, start_sz, nscore.first - score.first)){
                     is_station[x][y] = true;
                     score = nscore;
                 }else{
@@ -2069,7 +2072,7 @@ struct status_inc_base{
 
                 pair<int,int> nscore = calc_score();
 
-                if(shift(start_temp,end_temp,n_inc_time,pre_inc_time,nscore.first - score.first,cur_time)){
+                if(shift(start_temp, end_temp, i, start_sz, nscore.first - score.first)){
                     is_station[del.first][del.second] = false;
                     score = nscore;
                 }else{
@@ -2092,7 +2095,7 @@ struct status_inc_base{
 
                 pair<int,int> nscore = calc_score();
 
-                if(shift(start_temp,end_temp,n_inc_time,pre_inc_time,nscore.first - score.first,cur_time)){
+                if(shift(start_temp, end_temp, i, start_sz, nscore.first - score.first)){
                     is_station[nx - dx13[dir]][ny - dy13[dir]] = false;
                     is_station[nx][ny] = true;
                     score = nscore;
@@ -2175,7 +2178,7 @@ int main(){
 
     // 焼きなます
     status st1(station_pos);
-    // cout << "# start_size = " << station_pos.size() << '\n';
+    // // cout << "# start_size = " << station_pos.size() << '\n';
     station_pos = st1.yaki();
     // cout << "# end_size = " << station_pos.size() << '\n';
     status_inc_base st2(station_pos);

@@ -408,3 +408,9 @@ Average Score (log10)  : 6.32258
 Average Score          : 4,518,577.00
 
 Average Score (log10)  : 6.32915
+
+２回目の焼きなましの温度を時間ではなくどれだけ後ろの方をいじったかで評価
+
+Average Score          : 4,528,269.61
+
+Average Score (log10)  : 6.33014
