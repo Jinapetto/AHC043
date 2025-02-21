@@ -422,3 +422,11 @@ https://atcoder.jp/contests/ahc043/submissions/62967367
 Average Score          : 4,524,616.66
 
 Average Score (log10)  : 6.33145
+
+線路上に挿入する遷移を追加
+
+https://atcoder.jp/contests/ahc043/submissions/62969720
+
+Average Score          : 4,524,329.42
+
+Average Score (log10)  : 6.33133

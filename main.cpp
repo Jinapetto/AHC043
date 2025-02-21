@@ -42,9 +42,10 @@ array<int,1600> z_hash_house;
 array<int,1600> z_hash_office;
 
 ////////// parameter //////////////////
-
+// swap insert, erase, shift, abjacent_swap, 
 array<int,5> shift_rate = {3,5,2,5,1};
-array<int,5> shift_rate2 = {3,5,2,5,1};
+// swap insert, erase, shift, abjacent_swap, insert_on_rail
+array<int,6> shift_rate2 = {3,5,2,5,1,2};
 
 int beam_width_para = 213218;
 // beam_width = beam_width_para/predict_turn/sqrt(m);
@@ -2012,12 +2013,13 @@ struct status_inc_base{
         double n_inc_time = start_time + (end_time - start_time)/station_pos.size();
         int start_sz = station_pos.size();
 
-        array<int,4> choose;
+        array<int,6> choose;
         choose[0] = shift_rate2[0];
         choose[1] = shift_rate2[0] + shift_rate2[1];
         choose[2] = shift_rate2[0] + shift_rate2[1] + shift_rate2[2];
         choose[3] = shift_rate2[0] + shift_rate2[1] + shift_rate2[2] + shift_rate2[3];
         choose[4] = shift_rate2[0] + shift_rate2[1] + shift_rate2[2] + shift_rate2[3] + shift_rate2[4];
+        choose[5] = shift_rate2[0] + shift_rate2[1] + shift_rate2[2] + shift_rate2[3] + shift_rate2[4] + shift_rate2[5];
         
         for(int yaki_cnt = 0;true;yaki_cnt++){
             if(station_pos.size() == 0 || score.second == 0) break;
@@ -2032,7 +2034,7 @@ struct status_inc_base{
                 }
             }
             
-            int op = xor128()%choose[4];
+            int op = xor128()%choose[5];
             if(op < choose[0]){ // swap
                 if(station_pos.size() <= 1) continue;
                 int i = xor128()%station_pos.size();
@@ -2123,6 +2125,35 @@ struct status_inc_base{
                 }else{
                     swap(station_pos[i],station_pos[j]);
                 }
+            }else if(op < choose[5]){ //線路上に挿入
+                if(score.second != station_pos.size()) continue; // ターン超過しているときは、挿入しない
+                int x = -1;
+                int y = -1;
+                // 100回チャレンジ
+                rep(_,10){
+                    int nx = xor128()%n;
+                    int ny = xor128()%n;
+                    if(cur_grid[nx][ny] >= 1){
+                        x = nx;
+                        y = ny;
+                        break;
+                    }
+                }
+                if(x == -1) continue;
+                int i = xor128()%(station_pos.size() + 1);
+
+                if(is_station[x][y]) continue;
+                
+                station_pos.insert(station_pos.begin() + i,{x,y});
+
+                pair<int,int> nscore = calc_score();
+
+                if(shift(start_temp, end_temp, i, start_sz, nscore.first - score.first)){
+                    is_station[x][y] = true;
+                    score = nscore;
+                }else{
+                    station_pos.erase(station_pos.begin() + i);
+                }
             }
         }
         while(ans.size() != t) ans.push_back({-1,-1,-1});
@@ -2131,8 +2162,8 @@ struct status_inc_base{
 };
 
 int main(){
-    input();
     input_env();
+    input();
     // vector<pair<int,int>> station_pos= greedy();
 
     // 予想される手数
