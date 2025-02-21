@@ -414,3 +414,11 @@ Average Score (log10)  : 6.32915
 Average Score          : 4,528,269.61
 
 Average Score (log10)  : 6.33014
+
+隣接swapを追加
+
+https://atcoder.jp/contests/ahc043/submissions/62967367
+
+Average Score          : 4,524,616.66
+
+Average Score (log10)  : 6.33145

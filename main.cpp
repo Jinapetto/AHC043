@@ -42,10 +42,9 @@ array<int,1600> z_hash_house;
 array<int,1600> z_hash_office;
 
 ////////// parameter //////////////////
-int yaki_start_income = 1518;
-int yaki_start_money = 9860; // 両方満たしたときに焼きなます
 
-array<int,4> shift_rate = {3,5,2,5};
+array<int,5> shift_rate = {3,5,2,5,1};
+array<int,5> shift_rate2 = {3,5,2,5,1};
 
 int beam_width_para = 213218;
 // beam_width = beam_width_para/predict_turn/sqrt(m);
@@ -70,16 +69,6 @@ int beam_width = 0;
 void input_env(){
 	char* c;
 
-	c = getenv("yaki_start_income");
-	if(c != nullptr){
-		string s = c;
-		yaki_start_income = stoi(s);
-	}
-	c = getenv("yaki_start_money");
-	if(c != nullptr){
-		string s = c;
-		yaki_start_money = stoi(s);
-	}
 	// c = getenv("shift_rate_0");
 	// if(c != nullptr){
 	// 	string s = c;
@@ -1535,63 +1524,63 @@ array<array<pair<int,pair<int,int>>,50>,50> calc_dist_rail(array<array<int,50>,5
     return dist;
 }
 
-// 駅を作る座標とその順番から答えを作成
-pair<int,vector<tuple<int,int,int>>> greedy_rail(vector<pair<int,int>> station_pos){
-    int cur_money = init_money;
-    int cur_income = 0;
-    // 今まで最もよい操作
-    vector<tuple<int,int,int>> mx_score_ans;
-    int mx_score = 0;
-    // 答え
-    vector<tuple<int,int,int>> ans;
-    ans.reserve(t);
-    //現在の盤面
-    array<array<int,50>,50> cur_grid;
-    rep(i,n)rep(j,n) cur_grid[i][j] = -1;
-    // すでに家が線路に接続している
-    array<bool,1600> vis_house;
-    rep(i,m) vis_house[i] = false;
-    // すでにオフィスが線路に接続している
-    array<bool,1600> vis_office;
-    rep(i,m) vis_office[i] = false;
+// // 駅を作る座標とその順番から答えを作成
+// pair<int,vector<tuple<int,int,int>>> greedy_rail(vector<pair<int,int>> station_pos){
+//     int cur_money = init_money;
+//     int cur_income = 0;
+//     // 今まで最もよい操作
+//     vector<tuple<int,int,int>> mx_score_ans;
+//     int mx_score = 0;
+//     // 答え
+//     vector<tuple<int,int,int>> ans;
+//     ans.reserve(t);
+//     //現在の盤面
+//     array<array<int,50>,50> cur_grid;
+//     rep(i,n)rep(j,n) cur_grid[i][j] = -1;
+//     // すでに家が線路に接続している
+//     array<bool,1600> vis_house;
+//     rep(i,m) vis_house[i] = false;
+//     // すでにオフィスが線路に接続している
+//     array<bool,1600> vis_office;
+//     rep(i,m) vis_office[i] = false;
 
-    // 一番最初は駅を作る
-    make_station_rail(station_pos[0].first,station_pos[0].second,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
+//     // 一番最初は駅を作る
+//     make_station_rail(station_pos[0].first,station_pos[0].second,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
 
-    for(int i = 1;i < station_pos.size();i++){
-        auto [x, y] = station_pos[i];
-        // 駅の建設予定地に線路がある場合
-        if(cur_grid[x][y] >= 1){
-            make_station_rail(x,y,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
-            continue;
-        }
+//     for(int i = 1;i < station_pos.size();i++){
+//         auto [x, y] = station_pos[i];
+//         // 駅の建設予定地に線路がある場合
+//         if(cur_grid[x][y] >= 1){
+//             make_station_rail(x,y,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
+//             continue;
+//         }
 
-        array<array<pair<int,pair<int,int>>,50>,50> dist = calc_dist_rail(cur_grid);
-        // 最寄りの駅が存在する
-        if(dist[x][y].second.first == -1){
-            cout << "# Error don't exsist nearly station" << '\n';
-            continue;
-        }
+//         array<array<pair<int,pair<int,int>>,50>,50> dist = calc_dist_rail(cur_grid);
+//         // 最寄りの駅が存在する
+//         if(dist[x][y].second.first == -1){
+//             cout << "# Error don't exsist nearly station" << '\n';
+//             continue;
+//         }
 
-        // 線路を引く
-        if(construct_yorimichi(dist[x][y].second.first,dist[x][y].second.second,x,y,cur_grid,ans,cur_money,cur_income,station_pos).first == -1) continue;
+//         // 線路を引く
+//         if(construct_yorimichi(dist[x][y].second.first,dist[x][y].second.second,x,y,cur_grid,ans,cur_money,cur_income,station_pos).first == -1) continue;
 
-        // 駅を作る
-        make_station_rail(x,y,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
+//         // 駅を作る
+//         make_station_rail(x,y,cur_income,cur_money,ans,vis_office,vis_house,cur_grid);
 
-        // 途中でやめる
-        if(ans.size() > t) break;
-        int cur_score = cur_money + cur_income*(t - ans.size());
-        if(cur_score > mx_score){
-            mx_score = cur_score;
-            mx_score_ans = ans;
-        }
-    }
-    ans = mx_score_ans;
-    assert(ans.size() <= t);
-    while(ans.size() != t) ans.push_back({-1,-1,-1});
-    return {mx_score, ans};
-}
+//         // 途中でやめる
+//         if(ans.size() > t) break;
+//         int cur_score = cur_money + cur_income*(t - ans.size());
+//         if(cur_score > mx_score){
+//             mx_score = cur_score;
+//             mx_score_ans = ans;
+//         }
+//     }
+//     ans = mx_score_ans;
+//     assert(ans.size() <= t);
+//     while(ans.size() != t) ans.push_back({-1,-1,-1});
+//     return {mx_score, ans};
+// }
 
 // // 最初の1手
 // pair<beam_search::State,pair<pair<int,int>,pair<int,int>> > first_step(){
@@ -1764,16 +1753,18 @@ struct status{
     vector<pair<int,int>> yaki(){
         double start_time = (double)clock()/CLOCKS_PER_SEC;
         double cur_time = start_time;
-        double end_time = 2.0;
+        double end_time = start_time + (2.9 - start_time)/3.0;
         pair<int,int> score = calc_score(station_pos);
         // start_temp = score.first/20000;
         start_temp = score.first/start_temp_para;
+        // end_temp = start_temp/2;
 
-        array<int,4> choose;
+        array<int,5> choose;
         choose[0] = shift_rate[0];
         choose[1] = shift_rate[0] + shift_rate[1];
         choose[2] = shift_rate[0] + shift_rate[1] + shift_rate[2];
         choose[3] = shift_rate[0] + shift_rate[1] + shift_rate[2] + shift_rate[3];
+        choose[4] = shift_rate[0] + shift_rate[1] + shift_rate[2] + shift_rate[3] + shift_rate[4];
         
         for(int yaki_cnt = 0;true;yaki_cnt++){
             if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
@@ -1782,7 +1773,7 @@ struct status{
                 break;
             }
             
-            int op = xor128()%choose[3];
+            int op = xor128()%choose[4];
             if(op < choose[0]){ // swap
                 if(station_pos.size() <= 1) continue;
                 int i = xor128()%station_pos.size();
@@ -1858,6 +1849,20 @@ struct status{
                 }else{
                     station_pos[i].first -= dx13[dir];
                     station_pos[i].second -= dy13[dir];  
+                }
+            }else if(op < choose[4]){
+                if(station_pos.size() <= 1) continue;
+                int i = xor128()%(station_pos.size() - 1);
+                int j = i + 1;
+                
+                swap(station_pos[i],station_pos[j]);
+
+                pair<int,int> nscore = calc_score(station_pos);
+
+                if(shift(start_temp,end_temp,end_time,start_time,nscore.first - score.first,cur_time)){
+                    score = nscore;
+                }else{
+                    swap(station_pos[i],station_pos[j]);
                 }
             }
         }
@@ -2008,10 +2013,11 @@ struct status_inc_base{
         int start_sz = station_pos.size();
 
         array<int,4> choose;
-        choose[0] = shift_rate[0];
-        choose[1] = shift_rate[0] + shift_rate[1];
-        choose[2] = shift_rate[0] + shift_rate[1] + shift_rate[2];
-        choose[3] = shift_rate[0] + shift_rate[1] + shift_rate[2] + shift_rate[3];
+        choose[0] = shift_rate2[0];
+        choose[1] = shift_rate2[0] + shift_rate2[1];
+        choose[2] = shift_rate2[0] + shift_rate2[1] + shift_rate2[2];
+        choose[3] = shift_rate2[0] + shift_rate2[1] + shift_rate2[2] + shift_rate2[3];
+        choose[4] = shift_rate2[0] + shift_rate2[1] + shift_rate2[2] + shift_rate2[3] + shift_rate2[4];
         
         for(int yaki_cnt = 0;true;yaki_cnt++){
             if(station_pos.size() == 0 || score.second == 0) break;
@@ -2026,7 +2032,7 @@ struct status_inc_base{
                 }
             }
             
-            int op = xor128()%choose[3];
+            int op = xor128()%choose[4];
             if(op < choose[0]){ // swap
                 if(station_pos.size() <= 1) continue;
                 int i = xor128()%station_pos.size();
@@ -2102,6 +2108,20 @@ struct status_inc_base{
                 }else{
                     station_pos[i].first -= dx13[dir];
                     station_pos[i].second -= dy13[dir];  
+                }
+            }else if(op < choose[4]){
+                if(station_pos.size() <= 1) continue;
+                int i = xor128()%(station_pos.size() - 1);
+                int j = i + 1;
+                
+                swap(station_pos[i],station_pos[j]);
+
+                pair<int,int> nscore = calc_score();
+
+                if(shift(start_temp, end_temp, min(i,j), start_sz, nscore.first - score.first)){
+                    score = nscore;
+                }else{
+                    swap(station_pos[i],station_pos[j]);
                 }
             }
         }
