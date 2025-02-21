@@ -1,3 +1,7 @@
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#pragma GCC target("avx2")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC optimize("O3")
 #include <bits/stdc++.h>
 using namespace std;
 using ll = long long;
@@ -1689,8 +1693,6 @@ struct status{
         bitset<1600> vis_house;
         bitset<1600> vis_office;
         vector<bool> is_path(cur_station_pos.size(),false);
-        rep(i,m) vis_house[i] = false;
-        rep(i,m) vis_office[i] = false;
         int cur_turn = 0;
         int cur_money = init_money;
         int cur_income = 0;
@@ -1768,17 +1770,19 @@ struct status{
         choose[4] = shift_rate[0] + shift_rate[1] + shift_rate[2] + shift_rate[3] + shift_rate[4];
         
         for(int yaki_cnt = 0;true;yaki_cnt++){
-            if(yaki_cnt%10 == 0) cur_time = (double)clock()/CLOCKS_PER_SEC;
-            if(cur_time > end_time){
-                cout << "# yaki_cnt = " << yaki_cnt << '\n';
-                break;
+            if(yaki_cnt%10 == 0){
+                cur_time = (double)clock()/CLOCKS_PER_SEC;
+                if(cur_time > end_time){
+                    cout << "# yaki_cnt = " << yaki_cnt << '\n';
+                    break;
+                }
             }
             
             int op = xor128()%choose[4];
             if(op < choose[0]){ // swap
-                if(station_pos.size() <= 1) continue;
-                int i = xor128()%station_pos.size();
-                int j = xor128()%station_pos.size();
+                if(station_pos.size() <= 3) continue;
+                int i = xor128()%(station_pos.size() - 2) + 2;
+                int j = xor128()%(station_pos.size() - 2) + 2;
                 if(i == j) continue;
                 
                 swap(station_pos[i],station_pos[j]);
@@ -1793,9 +1797,10 @@ struct status{
             }
             else if(op < choose[1]){ // insert
                 if(score.second != station_pos.size()) continue; // ターン超過しているときは、挿入しない
+                if(station_pos.size() <= 1) continue;
                 int x = xor128()%n;
                 int y = xor128()%n;
-                int i = xor128()%(station_pos.size() + 1);
+                int i = xor128()%(station_pos.size() - 1) + 2;
 
                 if(is_station[x][y]) continue;
                 
@@ -1810,9 +1815,8 @@ struct status{
                     station_pos.erase(station_pos.begin() + i);
                 }
             }else if(op < choose[2]){ // delate
-                if(station_pos.size() == 0) continue;
-                if(score.second == 0) continue;
-                int i = xor128()%(score.second); //ターン超過していない、評価されている部分を削除する
+                if(score.second <= 2) continue;
+                int i = xor128()%(score.second - 2) + 2; //ターン超過していない、評価されている部分を削除する
 
                 pair<int,int> del = station_pos[i];
                 
@@ -1827,9 +1831,8 @@ struct status{
                     station_pos.insert(station_pos.begin() + i,del);
                 }
             }else if(op < choose[3]){ // shift
-                if(station_pos.size() == 0) continue;
-                if(score.second == 0) continue;
-                int i = xor128()%(score.second);//ターン超過していない、評価されている部分を動かす
+                if(score.second <= 2) continue;
+                int i = xor128()%(score.second - 2) + 2;//ターン超過していない、評価されている部分を動かす
                 int dir = xor128()%12;
                 dir++; // 最初の{0,0} はいらない
 
@@ -1852,8 +1855,8 @@ struct status{
                     station_pos[i].second -= dy13[dir];  
                 }
             }else if(op < choose[4]){
-                if(station_pos.size() <= 1) continue;
-                int i = xor128()%(station_pos.size() - 1);
+                if(station_pos.size() <= 3) continue;
+                int i = xor128()%(station_pos.size() - 3) + 2;
                 int j = i + 1;
                 
                 swap(station_pos[i],station_pos[j]);
@@ -1879,6 +1882,8 @@ struct status_inc_base{
     int cur_income;
     int cur_money;
     vector<tuple<int,int,int>> ans;
+    vector<tuple<int,int,int>> mx_score_ans;
+    int mx_score = 0;
     array<array<int,50>,50> cur_grid;
     array<bool,1600> base_vis_office;
     array<bool,1600> base_vis_house;
@@ -1943,6 +1948,11 @@ struct status_inc_base{
         base_dist = calc_dist_rail(cur_grid);
 
         assert(ans.size() <= t);
+
+        if(mx_score < cur_money + (t - (int)ans.size())*cur_income){
+            mx_score = cur_money + (t - (int)ans.size())*cur_income;
+            mx_score_ans = ans;
+        }
     }
 
     // {score, turn超過したidx}
@@ -2156,12 +2166,16 @@ struct status_inc_base{
                 }
             }
         }
-        while(ans.size() != t) ans.push_back({-1,-1,-1});
-        return ans;
+        while(mx_score_ans.size() < t) mx_score_ans.push_back({-1,-1,-1});
+        while(mx_score_ans.size() > t) mx_score_ans.pop_back();
+        cout << "# Score = " << mx_score << '\n';
+        return mx_score_ans;
     }
 };
 
 int main(){
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
     input_env();
     input();
     // vector<pair<int,int>> station_pos= greedy();

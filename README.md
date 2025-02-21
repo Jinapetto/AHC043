@@ -430,3 +430,17 @@ https://atcoder.jp/contests/ahc043/submissions/62969720
 Average Score          : 4,524,329.42
 
 Average Score (log10)  : 6.33133
+
+-O3
+
+Average Score          : 4,594,709.49
+
+Average Score (log10)  : 6.33390
+
+1回目の焼きなましで1手目と2手目の遷移をやめた <- 落ちているケースがあったため
+
+https://atcoder.jp/contests/ahc043/submissions/62971522
+
+Average Score          : 4,592,915.70
+
+Average Score (log10)  : 6.33359
