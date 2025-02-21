@@ -402,3 +402,9 @@ https://atcoder.jp/contests/ahc043/submissions/62956946
 Average Score          : 4,420,773.17
 
 Average Score (log10)  : 6.32258
+
+最後に、焼きなましの結果を初期解に答えを決めながら焼きなまし
+
+Average Score          : 4,518,577.00
+
+Average Score (log10)  : 6.32915
